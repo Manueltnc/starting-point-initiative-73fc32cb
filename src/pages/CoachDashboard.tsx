@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { AppHeader } from '@/components/ui/AppHeader'
 import { useAuth } from '@/hooks/useAuth'
 import { StudentDashboard } from '@/components/coach/StudentDashboard'
 import { GuardrailsSettings } from '@/components/coach/GuardrailsSettings'
-import { Users, Settings, LogOut, BarChart3 } from 'lucide-react'
+import { Users, Settings } from 'lucide-react'
 
 interface CoachDashboardProps {
   onLogout: () => void
@@ -31,22 +32,7 @@ export function CoachDashboard({ onLogout }: CoachDashboardProps) {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <BarChart3 className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-primary">Multiplication Wizard</h1>
-              <p className="text-muted-foreground italic">A Learning Boltz Experience</p>
-              <p className="text-sm text-muted-foreground">Coach Dashboard - Welcome, {user.user_metadata?.display_name || user.email}</p>
-            </div>
-          </div>
-          <Button onClick={onLogout} variant="outline" size="sm">
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
-        </div>
+        <AppHeader onLogout={onLogout} />
 
         {/* Navigation Tabs */}
         <div className="mb-6">

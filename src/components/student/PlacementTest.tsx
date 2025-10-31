@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { AppHeader } from '@/components/ui/AppHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { formatTime } from '@/lib/utils'
+import { supabase } from '@/integrations/supabase/client'
 import { Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import type { MathProblem } from '@/types'
@@ -24,6 +26,12 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   const [showResult, setShowResult] = useState(false)
   const [lastResult, setLastResult] = useState<{ correct: boolean; answer: number; timeSpent: number } | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
 
   useEffect(() => {
     if (sessionStarted && !sessionState) {
@@ -45,29 +53,45 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
   // Separate effect to handle auto-advance after showing result
   useEffect(() => {
-    if (showResult && sessionState) {
+    if (showResult && sessionState && !isSubmitting) {
+      console.log('Setting up auto-advance timer...')
+
       const timer = setTimeout(async () => {
-        const nextProblem = getNextProblem()
-        if (nextProblem) {
-          // There are more problems - advance to next and reset result state
-          advanceToNextProblem()
-          setShowResult(false)
-        } else {
-          // Test completed
-          await completeSession()
-          onComplete({
-            totalProblems: sessionState.problemQueue.length,
-            correctAnswers: sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length,
-            accuracy: Math.round((sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length / sessionState.problemQueue.length) * 100)
-          })
-          // Notify parent to refresh journey state
-          onJourneyStateChange?.()
+        console.log('Auto-advance triggered')
+
+        try {
+          const nextProblem = getNextProblem()
+          if (nextProblem) {
+            console.log('Advancing to next problem')
+            // There are more problems - advance to next and reset result state
+            advanceToNextProblem()
+            setShowResult(false)
+            setIsSubmitting(false)
+          } else {
+            console.log('No more problems, completing test')
+            // Test completed
+            await completeSession()
+            onComplete({
+              totalProblems: sessionState.problemQueue.length,
+              correctAnswers: sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length,
+              accuracy: Math.round((sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length / sessionState.problemQueue.length) * 100)
+            })
+            // Notify parent to refresh journey state
+            onJourneyStateChange?.()
+          }
+        } catch (error) {
+          console.error('Error during auto-advance:', error)
+          // Reset state so user can retry if needed
+          setIsSubmitting(false)
         }
       }, 2000)
 
-      return () => clearTimeout(timer)
+      return () => {
+        console.log('Cleaning up auto-advance timer')
+        clearTimeout(timer)
+      }
     }
-  }, [showResult, sessionState, getNextProblem, advanceToNextProblem, completeSession, onComplete])
+  }, [showResult, sessionState])
 
   useEffect(() => {
     if (startTime && !showResult) {
@@ -79,18 +103,32 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   }, [startTime, showResult])
 
   const handleSubmit = async () => {
-    if (!currentProblem || !userAnswer) return
+    // Prevent multiple submissions
+    if (!currentProblem || !userAnswer || isSubmitting || showResult) return
 
     const answer = parseInt(userAnswer)
     if (isNaN(answer)) return
 
-    // Calculate the exact time spent for this question
-    const currentTimeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timeSpent
-    
-    const result = await submitAnswer(answer, currentTimeSpent)
-    setLastResult({ correct: result.correct, answer: currentProblem.answer, timeSpent: currentTimeSpent })
-    setShowResult(true)
-    setTimeSpent(currentTimeSpent) // Preserve for display
+    try {
+      setIsSubmitting(true)
+
+      // Calculate the exact time spent for this question
+      const currentTimeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timeSpent
+
+      console.log('Submitting answer:', { answer, currentTimeSpent, problem: currentProblem })
+
+      const result = await submitAnswer(answer, currentTimeSpent)
+
+      console.log('Answer submitted successfully:', result)
+
+      setLastResult({ correct: result.correct, answer: currentProblem.answer, timeSpent: currentTimeSpent })
+      setShowResult(true)
+      setTimeSpent(currentTimeSpent) // Preserve for display
+    } catch (error) {
+      console.error('Failed to submit answer:', error)
+      // Reset submission state on error so user can try again
+      setIsSubmitting(false)
+    }
   }
 
   const handleAnswerChange = (value: string) => {
@@ -110,25 +148,30 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
   if (!sessionStarted) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-primary">Placement Test</CardTitle>
-            <p className="text-muted-foreground">
-              We'll ask you 20 multiplication problems to determine your starting level.
-              Take your time and do your best!
-            </p>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => setSessionStarted(true)}
-              className="w-full"
-              size="lg"
-            >
-              Start Placement Test
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          <AppHeader onLogout={handleLogout} />
+          <div className="flex items-center justify-center">
+            <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold text-primary">Placement Test</CardTitle>
+                <p className="text-muted-foreground">
+                  We'll ask you 20 multiplication problems to determine your starting level.
+                  Take your time and do your best!
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => setSessionStarted(true)}
+                  className="w-full"
+                  size="lg"
+                >
+                  Start Placement Test
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -148,7 +191,10 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
+        {/* App Header with Branding */}
+        <AppHeader onLogout={handleLogout} />
+
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
@@ -209,14 +255,14 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
             </CardContent>
           </Card>
 
-          {/* Numeric Keypad - Always visible, disabled during results */}
+          {/* Numeric Keypad - Always visible, disabled during results or submission */}
           <Card className="backdrop-blur-sm bg-white/80 border-white/20">
             <CardContent className="p-6">
               <NumericKeypad
                 value={userAnswer}
                 onChange={handleAnswerChange}
                 onSubmit={handleSubmit}
-                disabled={showResult}
+                disabled={showResult || isSubmitting}
                 maxLength={3}
               />
             </CardContent>
