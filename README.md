@@ -1,73 +1,163 @@
-# Welcome to your Lovable project
+# Math Times Tables App (Standalone)
 
-## Project info
+A comprehensive React-based educational application for learning multiplication tables. This is a standalone version ready for independent deployment.
 
-**URL**: https://lovable.dev/projects/1af154d3-2e5d-435b-a3a7-9ff5d61b1782
+> **Note**: This app has been converted to a standalone version with all dependencies localized. It no longer requires the parent monorepo structure.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+### Student Features
+- **Placement Test**: Adaptive assessment to determine starting level
+- **Practice Sessions**: 10-minute focused practice sessions
+- **Progress Grid**: Visual 12×12 grid showing mastery progress
+- **Real-time Feedback**: Immediate feedback on answers
+- **Mastery Tracking**: 3 consecutive correct answers required for mastery
 
-**Use Lovable**
+### Learning Coach Features
+- **Student Dashboard**: View all students and their progress
+- **Guardrail Settings**: Adjust difficulty levels (1-5, 1-9, 1-12)
+- **Progress Analytics**: Detailed statistics and insights
+- **Session History**: Track learning sessions and performance
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1af154d3-2e5d-435b-a3a7-9ff5d61b1782) and start prompting.
+## Technology Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
+- **State Management**: Custom hooks with React
+- **Routing**: React Router DOM
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Supabase account and project
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Manueltnc/learningboltz-math-app.git
+   cd learningboltz-math-app
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3. **Set up environment variables**:
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=your-supabase-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+4. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+5. **Open your browser**:
+   Navigate to `http://localhost:5173`
+
+### Deployment
+
+For detailed deployment instructions to Vercel or other platforms, see [STANDALONE-DEPLOYMENT.md](./STANDALONE-DEPLOYMENT.md).
+
+## Project Structure
+
+```
+apps/math-app/
+├── src/
+│   ├── components/
+│   │   ├── ui/              # shadcn/ui components
+│   │   ├── auth/            # Authentication components
+│   │   ├── student/         # Student-facing components
+│   │   └── coach/           # Learning coach components
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/                 # Utilities and configurations
+│   ├── pages/               # Main application pages
+│   ├── App.tsx              # Main application component
+│   └── main.tsx             # Application entry point
+├── package.json
+├── tailwind.config.js
+├── vite.config.ts
+└── tsconfig.json
 ```
 
-**Edit a file directly in GitHub**
+## Key Components
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Student Components
+- **PlacementTest**: Adaptive assessment component
+- **PracticeGrid**: Practice session interface
+- **MathProblem**: Individual problem display
+- **ProgressGrid**: Visual progress tracking
 
-**Use GitHub Codespaces**
+### Coach Components
+- **StudentDashboard**: Student management interface
+- **GuardrailsSettings**: Difficulty level controls
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Custom Hooks
+- **useAuth**: Authentication state management
+- **useMathSession**: Session and problem management
+- **useGridProgress**: Progress tracking and updates
 
-## What technologies are used for this project?
+## Learning Logic
 
-This project is built with:
+### Placement Test
+- 88 problems total
+- 90% from 1-9 tables (73 problems)
+- 10% from 10-12 tables (15 problems)
+- Random selection and shuffling
+- Time tracking per problem
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Practice Mode
+- Loads student's current progress
+- Prioritizes unmastered problems
+- 10-minute session limit
+- Incorrect answers are re-queued
+- Real-time grid updates
 
-## How can I deploy this project?
+### Mastery System
+- 3 consecutive correct answers = mastery
+- Color-coded progress grid:
+  - Red: Not attempted
+  - Yellow: 1 correct
+  - Orange: 2 correct
+  - Green: Mastered (3+ correct)
 
-Simply open [Lovable](https://lovable.dev/projects/1af154d3-2e5d-435b-a3a7-9ff5d61b1782) and click on Share -> Publish.
+## Database Schema
 
-## Can I connect a custom domain to my Lovable project?
+The app uses the following Supabase tables:
+- `students`: User profiles and metadata
+- `learning_sessions`: Session tracking
+- `math_progress`: Grid state and mastery
+- `student_progress`: Overall progress statistics
 
-Yes, you can!
+## Development
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Available Scripts
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm run preview`: Preview production build
+- `npm run lint`: Run ESLint
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Code Style
+- TypeScript for type safety
+- ESLint for code quality
+- Prettier for code formatting
+- Tailwind CSS for styling
+
+## Contributing
+
+1. Follow the established code style
+2. Use TypeScript for all new code
+3. Add proper error handling
+4. Include accessibility features
+5. Test on multiple screen sizes
+
+## License
+
+This project is part of the Education Apps Unified platform.
