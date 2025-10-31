@@ -58,7 +58,7 @@ export class UnifiedApiClient {
     if (!user) throw new Error('User not authenticated')
 
     const { data, error } = await this.supabase
-      .from('learning_sessions')
+      .from('multiplications_app_learning_sessions')
       .insert({
         student_id: user.id,
         app_type: appType,
@@ -77,7 +77,7 @@ export class UnifiedApiClient {
 
   async updateSession(sessionId: string, updates: SessionUpdateData): Promise<void> {
     const { error } = await this.supabase
-      .from('learning_sessions')
+      .from('multiplications_app_learning_sessions')
       .update({
         completed_items: updates.itemsAttempted,
         correct_answers: updates.itemsCorrect,
@@ -96,7 +96,7 @@ export class UnifiedApiClient {
 
   async completeSession(sessionId: string): Promise<void> {
     const { error } = await this.supabase
-      .from('learning_sessions')
+      .from('multiplications_app_learning_sessions')
       .update({
         status: 'completed',
         completed_at: new Date().toISOString()
@@ -118,7 +118,7 @@ export class UnifiedApiClient {
     attemptNumber: number
   ): Promise<void> {
     const { error } = await this.supabase
-      .from('question_attempts')
+      .from('multiplications_app_question_attempts')
       .insert({
         session_id: sessionId,
         student_id: studentId,
@@ -143,7 +143,7 @@ export class UnifiedApiClient {
     if (!user) throw new Error('User not authenticated')
 
     const { data, error } = await this.supabase
-      .from('math_grid_progress')
+      .from('multiplications_app_math_grid_progress')
       .select('*')
       .eq('student_id', user.id)
       .maybeSingle()
@@ -154,7 +154,7 @@ export class UnifiedApiClient {
     if (!data) {
       const initialGrid = this.createInitialGrid()
       const { error: insertError } = await this.supabase
-        .from('math_grid_progress')
+        .from('multiplications_app_math_grid_progress')
         .insert({
           student_id: user.id,
           grid_state: initialGrid,
@@ -190,7 +190,7 @@ export class UnifiedApiClient {
   async updateMathGrid(studentId: string, gridUpdates: MathGridCell[]): Promise<void> {
     // Fetch current grid
     const { data: currentData, error: fetchError } = await this.supabase
-      .from('math_grid_progress')
+      .from('multiplications_app_math_grid_progress')
       .select('grid_state, total_correct_answers, total_attempts')
       .eq('student_id', studentId)
       .maybeSingle()
@@ -201,7 +201,7 @@ export class UnifiedApiClient {
     if (!currentData) {
       const initialGrid = this.createInitialGrid()
       await this.supabase
-        .from('math_grid_progress')
+        .from('multiplications_app_math_grid_progress')
         .insert({
           student_id: studentId,
           grid_state: initialGrid,
@@ -212,7 +212,7 @@ export class UnifiedApiClient {
       
       // Retry fetch
       const { data: retryData, error: retryError } = await this.supabase
-        .from('math_grid_progress')
+        .from('multiplications_app_math_grid_progress')
         .select('grid_state, total_correct_answers, total_attempts')
         .eq('student_id', studentId)
         .maybeSingle()
@@ -237,7 +237,7 @@ export class UnifiedApiClient {
       
       // Update in database
       const { error: updateError } = await this.supabase
-        .from('math_grid_progress')
+        .from('multiplications_app_math_grid_progress')
         .update({
           grid_state: gridState,
           total_correct_answers: totalCorrect,
@@ -267,7 +267,7 @@ export class UnifiedApiClient {
 
     // Update in database
     const { error: updateError } = await this.supabase
-      .from('math_grid_progress')
+      .from('multiplications_app_math_grid_progress')
       .update({
         grid_state: gridState,
         total_correct_answers: totalCorrect,
@@ -281,7 +281,7 @@ export class UnifiedApiClient {
 
   async setMathGuardrail(studentId: string, guardrail: '1-5' | '1-9' | '1-12'): Promise<void> {
     const { error } = await this.supabase
-      .from('math_grid_progress')
+      .from('multiplications_app_math_grid_progress')
       .update({
         guardrails_level: guardrail,
         updated_at: new Date().toISOString()
@@ -321,7 +321,7 @@ export class UnifiedApiClient {
 
     // Check if student has completed placement test
     const { data: sessions, error } = await this.supabase
-      .from('learning_sessions')
+      .from('multiplications_app_learning_sessions')
       .select('session_type, status')
       .eq('student_id', user.id)
       .eq('app_type', 'math')
@@ -357,7 +357,7 @@ export class UnifiedApiClient {
     }
   ): Promise<DailyStudentMetrics[]> {
     let query = this.supabase
-      .from('daily_student_metrics')
+      .from('multiplications_app_daily_student_metrics')
       .select('*')
       .eq('student_id', studentId)
 
@@ -388,7 +388,7 @@ export class UnifiedApiClient {
     }
   ): Promise<DailyDifficultyMetrics[]> {
     let query = this.supabase
-      .from('daily_difficulty_metrics')
+      .from('multiplications_app_daily_difficulty_metrics')
       .select('*')
       .eq('student_id', studentId)
 
@@ -417,7 +417,7 @@ export class UnifiedApiClient {
   }): Promise<CohortMetrics> {
     // This is a simplified version - in production you'd want to use database functions
     const { data: metrics, error } = await this.supabase
-      .from('daily_student_metrics')
+      .from('multiplications_app_daily_student_metrics')
       .select('*')
 
     if (error) throw error
@@ -431,7 +431,7 @@ export class UnifiedApiClient {
 
     // Get difficulty breakdown
     const { data: difficultyData } = await this.supabase
-      .from('daily_difficulty_metrics')
+      .from('multiplications_app_daily_difficulty_metrics')
       .select('*')
 
     const difficultyBreakdown = {
@@ -459,7 +459,7 @@ export class UnifiedApiClient {
 
   async getTimeBucketConfig(): Promise<TimeBucketConfig> {
     const { data, error } = await this.supabase
-      .from('app_config')
+      .from('multiplications_app_config')
       .select('value')
       .eq('key', 'time_bucket_config')
       .single()
@@ -473,7 +473,7 @@ export class UnifiedApiClient {
 
   async setTimeBucketConfig(config: TimeBucketConfig): Promise<void> {
     const { error } = await this.supabase
-      .from('app_config')
+      .from('multiplications_app_config')
       .upsert({
         key: 'time_bucket_config',
         value: config,
@@ -494,7 +494,7 @@ export class UnifiedApiClient {
 
     // This is a simplified version - you'd want to create a database view or function for this
     const { data, error, count } = await this.supabase
-      .from('math_grid_progress')
+      .from('multiplications_app_math_grid_progress')
       .select('*', { count: 'exact' })
       .range(offset, offset + pageSize - 1)
 

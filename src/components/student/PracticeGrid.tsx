@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { AppHeader } from '@/components/ui/AppHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { MathProblem } from './MathProblem'
 import { SessionRecoveryModal } from './SessionRecoveryModal'
-import { formatTime } from '@/lib/utils'
 import { PRACTICE_CONFIG } from '@/lib/config'
 import { supabase } from '@/integrations/supabase/client'
-import { Clock, Target, Trophy } from 'lucide-react'
+import { Target, Trophy } from 'lucide-react'
 import type { MathProblem as MathProblemType } from '@/types'
 
 interface PracticeGridProps {
@@ -24,7 +22,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const { getGuardrailMasteryPercentage } = useGridProgress()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
-  const [sessionTime, setSessionTime] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [problemIndex, setProblemIndex] = useState(0)
   const [showRecoveryModal, setShowRecoveryModal] = useState(false)
@@ -56,7 +53,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     if (startTime) {
       const interval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000)
-        setSessionTime(elapsed)
         
         if (elapsed >= SESSION_DURATION) {
           handleSessionComplete()
@@ -192,9 +188,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
       </div>
     )
   }
-
-  const timeRemaining = SESSION_DURATION - sessionTime
-  const progress = (sessionTime / SESSION_DURATION) * 100
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">

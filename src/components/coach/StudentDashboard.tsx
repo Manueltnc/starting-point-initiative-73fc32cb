@@ -37,7 +37,7 @@ export function StudentDashboard({ coachId }: StudentDashboardProps) {
     try {
       // Get recent session data for AI analysis
       const { data: sessions } = await supabase
-        .from('learning_sessions')
+        .from('multiplications_app_learning_sessions')
         .select('*')
         .eq('student_id', studentId)
         .eq('app_type', 'math')
@@ -79,9 +79,9 @@ export function StudentDashboard({ coachId }: StudentDashboardProps) {
 
   const fetchStudentProgress = async (studentId: string) => {
     try {
-      // Calculate student progress from learning_sessions and math_grid_progress
+      // Calculate student progress from multiplications_app_learning_sessions and multiplications_app_math_grid_progress
       const { data: sessions, error: sessionsError } = await supabase
-        .from('learning_sessions')
+        .from('multiplications_app_learning_sessions')
         .select('*')
         .eq('student_id', studentId)
         .eq('app_type', 'math')
@@ -89,7 +89,7 @@ export function StudentDashboard({ coachId }: StudentDashboardProps) {
       if (sessionsError) throw sessionsError
 
       const { error: gridError } = await supabase
-        .from('math_grid_progress')
+        .from('multiplications_app_math_grid_progress')
         .select('*')
         .eq('student_id', studentId)
 

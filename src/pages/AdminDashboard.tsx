@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppHeader } from '@/components/ui/AppHeader'
-import { useAuth } from '@/hooks/useAuth'
 import { KpiCard } from '@/components/admin/KpiCard'
 import { TrendChart } from '@/components/admin/TrendChart'
 import { DifficultyBreakdown } from '@/components/admin/DifficultyBreakdown'
@@ -26,7 +25,6 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const { user } = useAuth()
   const [cohortMetrics, setCohortMetrics] = useState<CohortMetrics | null>(null)
   const [students, setStudents] = useState<StudentSummary[]>([])
   const [timeBucketConfig, setTimeBucketConfig] = useState<TimeBucketConfig>({ fastThreshold: 5, mediumThreshold: 15 })

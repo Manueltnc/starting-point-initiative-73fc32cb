@@ -22,9 +22,9 @@ export function GuardrailsSettings({ student, onUpdate }: GuardrailsSettingsProp
 
   const fetchCurrentGuardrail = async () => {
     try {
-      // Fetch current guardrail level from math_grid_progress table
+      // Fetch current guardrail level from multiplications_app_math_grid_progress table
       const { data, error } = await supabase
-        .from('math_grid_progress')
+        .from('multiplications_app_math_grid_progress')
         .select('guardrails_level')
         .eq('student_id', student.id)
         .limit(1)
@@ -44,9 +44,9 @@ export function GuardrailsSettings({ student, onUpdate }: GuardrailsSettingsProp
     setSuccess(null)
 
     try {
-      // Update guardrail level in math_grid_progress table
+      // Update guardrail level in multiplications_app_math_grid_progress table
       const { error } = await supabase
-        .from('math_grid_progress')
+        .from('multiplications_app_math_grid_progress')
         .update({
           guardrails_level: currentGuardrail,
           updated_at: new Date().toISOString()
