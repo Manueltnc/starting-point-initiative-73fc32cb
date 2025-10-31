@@ -4,8 +4,8 @@ import { supabase } from '@/lib/supabase'
 import { getPlacementQuestionCount, PLACEMENT_CONFIG, classifyTime } from '@/lib/config'
 import type { MathProblem, MathSessionState } from '@/types'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = 'https://pyoyzyzhcwrqqyujjmze.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5b3l6eXpoY3dycXF5dWpqbXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwODA5MTUsImV4cCI6MjA2NzY1NjkxNX0.CG1T1e4pUhipDyesjNiCD2YSDFXQi5dAhpKJZx6ytFk'
 const apiClient = createApiClient(supabaseUrl, supabaseKey)
 
 export function useMathSession() {
