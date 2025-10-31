@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import { supabase } from '@/lib/supabase'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { AIDifficultyAdjustment } from '@/lib/ai-difficulty-adjustment'
@@ -89,13 +88,15 @@ export function StudentDashboard({ coachId }: StudentDashboardProps) {
 
       if (sessionsError) throw sessionsError
 
-      const { data: gridData, error: gridError } = await supabase
+      const { error: gridError } = await supabase
         .from('math_grid_progress')
         .select('*')
         .eq('student_id', studentId)
 
       if (gridError) throw gridError
 
+      // Grid data fetched successfully
+      
       // Calculate progress statistics
       const totalSessions = sessions?.length || 0
       const totalItemsAttempted = sessions?.reduce((sum, session) => sum + (session.completed_items || 0), 0) || 0

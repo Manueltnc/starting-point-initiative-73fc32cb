@@ -36,8 +36,8 @@ export class UnifiedApiClient {
 
   async createSession(
     appType: string,
-    email: string,
-    gradeLevel: string,
+    _email: string,
+    _gradeLevel: string,
     metadata?: Record<string, any>
   ): Promise<{ sessionId: string }> {
     const { data: { user } } = await this.supabase.auth.getUser()
@@ -124,7 +124,7 @@ export class UnifiedApiClient {
   // MATH PROGRESS
   // ============================================
 
-  async getMathProgress(email: string, gradeLevel: string): Promise<MathProgress> {
+  async getMathProgress(_email: string, _gradeLevel: string): Promise<MathProgress> {
     const { data: { user } } = await this.supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -139,7 +139,7 @@ export class UnifiedApiClient {
     // If no progress exists, create initial grid
     if (!data) {
       const initialGrid = this.createInitialGrid()
-      const { data: newData, error: insertError } = await this.supabase
+      const { error: insertError } = await this.supabase
         .from('math_grid_progress')
         .insert({
           student_id: user.id,
@@ -281,7 +281,7 @@ export class UnifiedApiClient {
   // USER ROLES
   // ============================================
 
-  async getUserRoles(userId: string): Promise<string[]> {
+  async getUserRoles(_userId: string): Promise<string[]> {
     // Check auth.users metadata for role
     const { data: { user } } = await this.supabase.auth.getUser()
     if (!user) return []
@@ -290,7 +290,7 @@ export class UnifiedApiClient {
     return role ? [role] : ['student']
   }
 
-  async isSuperAdmin(userId: string): Promise<boolean> {
+  async isSuperAdmin(_userId: string): Promise<boolean> {
     const { data: { user } } = await this.supabase.auth.getUser()
     if (!user) return false
     
@@ -396,7 +396,7 @@ export class UnifiedApiClient {
     return data || []
   }
 
-  async getCohortMetrics(options?: {
+  async getCohortMetrics(_options?: {
     startDate?: string
     endDate?: string
     gradeLevel?: string

@@ -19,7 +19,7 @@ interface PracticeGridProps {
 
 export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
   const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading, checkForActiveSessions } = useMathSession()
-  const { fetchProgress, getCellColor, getGuardrailMasteryPercentage } = useGridProgress()
+  const { getGuardrailMasteryPercentage } = useGridProgress()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [sessionTime, setSessionTime] = useState(0)

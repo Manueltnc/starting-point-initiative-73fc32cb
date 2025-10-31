@@ -15,7 +15,7 @@ interface PracticePageProps {
 
 export function PracticePage({ onBack, autoStart = false, desiredMode }: PracticePageProps) {
   const { user } = useAuth()
-  const { journeyState, refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
+  const { refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
   const [mode, setMode] = useState<'placement' | 'practice' | 'results' | null>(null)
   const [placementResults, setPlacementResults] = useState<any>(null)
 

@@ -5,8 +5,7 @@ import { Progress } from '@/components/ui/progress'
 import { useAuth } from '@/hooks/useAuth'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
-import { Calculator, Target, Trophy, BarChart3, Play, BookOpen, LogOut, Star, Sparkles, Clock, Users, Award } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { Calculator, Target, Trophy, BarChart3, Play, BookOpen, LogOut, Star, Sparkles, Clock, Award } from 'lucide-react'
 import { ProgressGridModal } from '@/components/student/ProgressGridModal'
 
 interface StudentHomeProps {
@@ -19,7 +18,7 @@ interface StudentHomeProps {
 export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress, onLogout }: StudentHomeProps) {
   const { user } = useAuth()
   const { progress, loading: progressLoading, fetchProgress, getMasteryPercentage, getGuardrailMasteryPercentage } = useGridProgress()
-  const { journeyState, loading: journeyLoading, shouldShowPlacement, canStartPractice, refreshJourneyState } = useStudentJourney()
+  const { loading: journeyLoading, shouldShowPlacement, canStartPractice } = useStudentJourney()
   const [showProgressModal, setShowProgressModal] = useState(false)
 
   useEffect(() => {

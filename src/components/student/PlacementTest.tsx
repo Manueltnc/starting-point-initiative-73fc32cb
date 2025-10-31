@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useMathSession } from '@/hooks/useMathSession'
 import { formatTime } from '@/lib/utils'
-import { Clock, CheckCircle, XCircle, Star, Sparkles, Trophy, Target } from 'lucide-react'
+import { Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import type { MathProblem } from '@/types'
 
@@ -182,7 +182,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
                 <div className="text-center space-y-6">
                   <div className="flex items-center justify-center gap-3">
                     {lastResult?.correct ? (
-                      <CheckCircle className="h-12 w-12 text-green-500" />
+                      <CheckCircle2 className="h-12 w-12 text-green-500" />
                     ) : (
                       <XCircle className="h-12 w-12 text-red-500" />
                     )}

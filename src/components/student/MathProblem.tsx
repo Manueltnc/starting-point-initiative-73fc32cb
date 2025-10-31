@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { EquationProblem } from '@/components/ui/EquationDisplay'
 import { formatTime } from '@/lib/utils'
 import { Clock, CheckCircle, XCircle } from 'lucide-react'

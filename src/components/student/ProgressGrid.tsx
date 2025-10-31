@@ -160,9 +160,6 @@ export function ProgressGrid({ email, gradeLevel }: ProgressGridProps) {
                         const isSelected = selectedCell === cell
                         
                         const cellState = getStudentCellState(cell)
-                        const cellIcon = cellState === 'mastered' ? '✓' : 
-                                        cellState === 'recently-failed' ? '!' : 
-                                        '•'
                         
                         return (
                           <button
