@@ -5,7 +5,9 @@ import { PlacementTest } from '@/components/student/PlacementTest'
 import { PracticeGrid } from '@/components/student/PracticeGrid'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AppHeader } from '@/components/ui/AppHeader'
 import { Trophy, Target, Clock, ArrowLeft } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
 interface PracticePageProps {
   onBack: () => void
@@ -18,6 +20,11 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
   const { refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
   const [mode, setMode] = useState<'placement' | 'practice' | 'results' | null>(null)
   const [placementResults, setPlacementResults] = useState<any>(null)
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
 
   // Deterministic mode resolution based on desiredMode and journey state
   useEffect(() => {
@@ -92,25 +99,30 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
   // Gate screen: user wants practice but needs placement first
   if (desiredMode === 'practice' && needsPlacement && !mode) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-primary">Complete Placement First</CardTitle>
-            <p className="text-muted-foreground">
-              You need to complete a placement test before starting practice sessions.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button onClick={handleStartPlacement} className="w-full" size="lg">
-              <Target className="h-4 w-4 mr-2" />
-              Start Placement Test
-            </Button>
-            <Button onClick={onBack} variant="outline" className="w-full">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          <AppHeader onLogout={handleLogout} />
+          <div className="flex items-center justify-center">
+            <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold text-primary">Complete Placement First</CardTitle>
+                <p className="text-muted-foreground">
+                  You need to complete a placement test before starting practice sessions.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button onClick={handleStartPlacement} className="w-full" size="lg">
+                  <Target className="h-4 w-4 mr-2" />
+                  Start Placement Test
+                </Button>
+                <Button onClick={onBack} variant="outline" className="w-full">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -142,13 +154,8 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
   if (mode === 'results' && placementResults) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-6">
-            <Button onClick={onBack} variant="outline" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </div>
+        <div className="max-w-4xl mx-auto">
+          <AppHeader onLogout={handleLogout} />
 
           <Card className="backdrop-blur-sm bg-white/80 border-white/20">
             <CardHeader className="text-center">
@@ -204,13 +211,8 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
   // Default mode selection
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <Button onClick={onBack} variant="outline" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </Button>
-        </div>
+      <div className="max-w-4xl mx-auto">
+        <AppHeader onLogout={handleLogout} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="backdrop-blur-sm bg-white/80 border-white/20 hover:bg-white/90 transition-colors">

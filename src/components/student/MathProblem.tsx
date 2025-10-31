@@ -20,13 +20,21 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
   const [showResult, setShowResult] = useState(false)
   const [lastResult, setLastResult] = useState<{ correct: boolean; answer: number } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [advanceTimerRef, setAdvanceTimerRef] = useState<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    // Clear any pending advance timer when problem changes
+    if (advanceTimerRef) {
+      clearTimeout(advanceTimerRef)
+      setAdvanceTimerRef(null)
+    }
+
     setStartTime(Date.now())
     setTimeSpent(0)
     setUserAnswer('')
     setShowResult(false)
     setLastResult(null)
+    setSubmitting(false)
   }, [problem])
 
   useEffect(() => {
@@ -38,31 +46,58 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
     }
   }, [startTime, showResult])
 
+  // Cleanup timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (advanceTimerRef) {
+        clearTimeout(advanceTimerRef)
+      }
+    }
+  }, [advanceTimerRef])
+
   const handleSubmit = async () => {
-    if (!userAnswer || submitting) return
+    // Prevent multiple submissions
+    if (!userAnswer || submitting || showResult) return
 
     const answer = parseInt(userAnswer)
     if (isNaN(answer)) return
 
-    setSubmitting(true)
-    const result = await onAnswer(answer, timeSpent)
-    setLastResult({ correct: result.correct, answer: problem.answer })
-    setShowResult(true)
-    setSubmitting(false)
+    try {
+      setSubmitting(true)
 
-    // Auto-advance after 2 seconds
-    setTimeout(() => {
-      if (isLastProblem) {
-        onComplete()
-      } else {
-        // Reset for next problem
-        setStartTime(Date.now())
-        setTimeSpent(0)
-        setUserAnswer('')
-        setShowResult(false)
-        setLastResult(null)
-      }
-    }, 2000)
+      console.log('Submitting answer (MathProblem):', { answer, timeSpent, problem })
+
+      const result = await onAnswer(answer, timeSpent)
+
+      console.log('Answer submitted successfully (MathProblem):', result)
+
+      setLastResult({ correct: result.correct, answer: problem.answer })
+      setShowResult(true)
+      setSubmitting(false)
+
+      // Auto-advance after 2 seconds - store timer reference for cleanup
+      const timer = setTimeout(() => {
+        console.log('Auto-advance triggered (MathProblem)')
+
+        if (isLastProblem) {
+          onComplete()
+        } else {
+          // Reset for next problem
+          setStartTime(Date.now())
+          setTimeSpent(0)
+          setUserAnswer('')
+          setShowResult(false)
+          setLastResult(null)
+        }
+        setAdvanceTimerRef(null)
+      }, 2000)
+
+      setAdvanceTimerRef(timer)
+    } catch (error) {
+      console.error('Failed to submit answer (MathProblem):', error)
+      // Reset submission state on error so user can try again
+      setSubmitting(false)
+    }
   }
 
   const handleAnswerChange = (value: string) => {

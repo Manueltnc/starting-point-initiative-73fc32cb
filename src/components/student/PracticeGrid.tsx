@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { AppHeader } from '@/components/ui/AppHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { MathProblem } from './MathProblem'
 import { SessionRecoveryModal } from './SessionRecoveryModal'
 import { formatTime } from '@/lib/utils'
 import { PRACTICE_CONFIG } from '@/lib/config'
+import { supabase } from '@/integrations/supabase/client'
 import { Clock, Target, Trophy } from 'lucide-react'
 import type { MathProblem as MathProblemType } from '@/types'
 
@@ -29,6 +31,11 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const [hasCheckedForSessions, setHasCheckedForSessions] = useState(false)
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
 
   useEffect(() => {
     if (sessionStarted && !sessionState) {
@@ -144,28 +151,33 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
 
   if (!sessionStarted) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-primary">Practice Session</CardTitle>
-            <p className="text-muted-foreground">
-              Practice multiplication problems for up to 10 minutes.
-              Focus on problems you haven't mastered yet!
-            </p>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => {
-                setSessionStarted(true)
-                setStartTime(Date.now())
-              }}
-              className="w-full"
-              size="lg"
-            >
-              Start Practice
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          <AppHeader onLogout={handleLogout} />
+          <div className="flex items-center justify-center">
+            <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold text-primary">Practice Session</CardTitle>
+                <p className="text-muted-foreground">
+                  Practice multiplication problems for up to 10 minutes.
+                  Focus on problems you haven't mastered yet!
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => {
+                    setSessionStarted(true)
+                    setStartTime(Date.now())
+                  }}
+                  className="w-full"
+                  size="lg"
+                >
+                  Start Practice
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -187,18 +199,15 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Session Header */}
+        {/* App Header with Branding */}
+        <AppHeader onLogout={handleLogout} />
+
+        {/* Session Info Header (Timer hidden, analytics still track in background) */}
         <div className="mb-6">
           <Card className="backdrop-blur-sm bg-white/80 border-white/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {formatTime(timeRemaining)} remaining
-                    </span>
-                  </div>
                   <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium text-muted-foreground">
@@ -212,9 +221,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
                     {getGuardrailMasteryPercentage()}% mastered
                   </span>
                 </div>
-              </div>
-              <div className="mt-3">
-                <Progress value={progress} className="h-2" />
               </div>
             </CardContent>
           </Card>
