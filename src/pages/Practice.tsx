@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AppHeader } from '@/components/ui/AppHeader'
 import { Trophy, Target, Clock, ArrowLeft } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
 
 interface PracticePageProps {
   onBack: () => void
@@ -16,13 +15,13 @@ interface PracticePageProps {
 }
 
 export function PracticePage({ onBack, autoStart = false, desiredMode }: PracticePageProps) {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
   const [mode, setMode] = useState<'placement' | 'practice' | 'results' | null>(null)
   const [placementResults, setPlacementResults] = useState<any>(null)
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+  const handleLogout = () => {
+    signOut()
     window.location.href = '/'
   }
 

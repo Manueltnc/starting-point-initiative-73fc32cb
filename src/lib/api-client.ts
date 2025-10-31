@@ -30,6 +30,20 @@ export class UnifiedApiClient {
     this.supabase = createClient(supabaseUrl, supabaseKey)
   }
 
+  // Helper to get current user from localStorage (bypassing Supabase Auth)
+  private getCurrentUser(): { id: string; email: string; metadata: any } | null {
+    const email = localStorage.getItem('user_email')
+    const userId = localStorage.getItem('user_id')
+    const metadataStr = localStorage.getItem('user_metadata')
+
+    if (!email || !userId) {
+      return null
+    }
+
+    const metadata = metadataStr ? JSON.parse(metadataStr) : {}
+    return { id: userId, email, metadata }
+  }
+
   // ============================================
   // SESSION MANAGEMENT
   // ============================================
@@ -40,7 +54,7 @@ export class UnifiedApiClient {
     _gradeLevel: string,
     metadata?: Record<string, any>
   ): Promise<{ sessionId: string }> {
-    const { data: { user } } = await this.supabase.auth.getUser()
+    const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
     const { data, error } = await this.supabase
@@ -125,7 +139,7 @@ export class UnifiedApiClient {
   // ============================================
 
   async getMathProgress(_email: string, _gradeLevel: string): Promise<MathProgress> {
-    const { data: { user } } = await this.supabase.auth.getUser()
+    const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
     const { data, error } = await this.supabase
@@ -282,19 +296,19 @@ export class UnifiedApiClient {
   // ============================================
 
   async getUserRoles(_userId: string): Promise<string[]> {
-    // Check auth.users metadata for role
-    const { data: { user } } = await this.supabase.auth.getUser()
+    // Check localStorage for user role
+    const user = this.getCurrentUser()
     if (!user) return []
-    
-    const role = user.user_metadata?.role
+
+    const role = user.metadata?.role
     return role ? [role] : ['student']
   }
 
   async isSuperAdmin(_userId: string): Promise<boolean> {
-    const { data: { user } } = await this.supabase.auth.getUser()
+    const user = this.getCurrentUser()
     if (!user) return false
-    
-    return user.user_metadata?.role === 'super_admin'
+
+    return user.metadata?.role === 'super_admin'
   }
 
   // ============================================
@@ -302,7 +316,7 @@ export class UnifiedApiClient {
   // ============================================
 
   async getCurrentJourneyState(): Promise<StudentJourneyState> {
-    const { data: { user } } = await this.supabase.auth.getUser()
+    const user = this.getCurrentUser()
     if (!user) return 'needs_placement'
 
     // Check if student has completed placement test

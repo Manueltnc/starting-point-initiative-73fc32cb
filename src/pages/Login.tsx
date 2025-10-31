@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import { LoginForm } from '@/components/auth/LoginForm'
-import { SignupForm } from '@/components/auth/SignupForm'
 import { Calculator, BookOpen } from 'lucide-react'
 
 interface LoginPageProps {
@@ -8,8 +6,6 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  const [isSignup, setIsSignup] = useState(false)
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/20 via-secondary/20 to-primary/30 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -32,17 +28,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         {/* Auth Form */}
-        {isSignup ? (
-          <SignupForm
-            onSuccess={onLogin}
-            onSwitchToLogin={() => setIsSignup(false)}
-          />
-        ) : (
-          <LoginForm
-            onSuccess={onLogin}
-            onSwitchToSignup={() => setIsSignup(true)}
-          />
-        )}
+        <LoginForm onSuccess={onLogin} />
 
         {/* Footer */}
         <div className="text-center mt-8 text-xs text-muted-foreground">
