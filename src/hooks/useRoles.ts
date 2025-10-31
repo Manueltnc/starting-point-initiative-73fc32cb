@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react'
-import { createApiClient } from '@/lib/api-client'
-import { supabase } from '@/lib/supabase'
 
-const supabaseUrl = 'https://pyoyzyzhcwrqqyujjmze.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5b3l6eXpoY3dycXF5dWpqbXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwODA5MTUsImV4cCI6MjA2NzY1NjkxNX0.CG1T1e4pUhipDyesjNiCD2YSDFXQi5dAhpKJZx6ytFk'
-const apiClient = createApiClient(supabaseUrl, supabaseKey)
+const USER_METADATA_STORAGE_KEY = 'user_metadata'
 
 export function useRoles() {
   const [roles, setRoles] = useState<string[]>([])
@@ -21,26 +17,25 @@ export function useRoles() {
       setLoading(true)
       setError(null)
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        setRoles([])
+      // Get user metadata from localStorage
+      const metadataStr = localStorage.getItem(USER_METADATA_STORAGE_KEY)
+
+      if (!metadataStr) {
+        setRoles(['student']) // Default role
         setIsSuperAdmin(false)
+        setLoading(false)
         return
       }
 
-      // Fetch user roles
-      const userRoles = await apiClient.getUserRoles(user.id)
-      setRoles(userRoles)
+      const metadata = JSON.parse(metadataStr)
+      const role = metadata.role || 'student'
 
-      // Check if user is super admin
-      const isAdmin = await apiClient.isSuperAdmin(user.id)
-      setIsSuperAdmin(isAdmin)
+      setRoles([role])
+      setIsSuperAdmin(role === 'super_admin' || role === 'admin')
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch user roles')
-      setRoles([])
+      setRoles(['student'])
       setIsSuperAdmin(false)
     } finally {
       setLoading(false)

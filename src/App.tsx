@@ -1,22 +1,20 @@
 import { useState } from 'react'
-import { BrowserRouter as Router } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { useRoles } from '@/hooks/useRoles'
 import { LoginPage } from '@/pages/Login'
 import { StudentHome } from '@/pages/StudentHome'
 import { PracticePage } from '@/pages/Practice'
-import { CoachDashboard } from '@/pages/CoachDashboard'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 import { ProgressGrid } from '@/components/student/ProgressGrid'
 import { Loader2 } from 'lucide-react'
 
-function App() {
-  const { user, loading } = useAuth()
-  const { isSuperAdmin, loading: rolesLoading } = useRoles()
-  const [currentPage, setCurrentPage] = useState<'home' | 'practice' | 'progress' | 'coach' | 'admin'>('home')
+function StudentRoutes() {
+  const { user, loading, signOut } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [desiredMode, setDesiredMode] = useState<'practice' | 'placement' | undefined>(undefined)
 
-  if (loading || rolesLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20">
         <div className="text-center">
@@ -28,105 +26,81 @@ function App() {
   }
 
   if (!user) {
-    return <LoginPage onLogin={() => {}} />
+    return <LoginPage onLogin={() => navigate('/')} />
   }
 
-  const isCoach = user.user_metadata?.role === 'coach'
-
-  const handleLogout = async () => {
-    // This would typically call a logout function
+  const handleLogout = () => {
+    signOut()
     window.location.reload()
   }
 
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'home':
-        return (
-          <StudentHome
-            onStartPlacement={(mode) => {
-              setDesiredMode(mode)
-              setCurrentPage('practice')
-            }}
-            onStartPractice={(mode) => {
-              setDesiredMode(mode)
-              setCurrentPage('practice')
-            }}
-            onViewProgress={() => setCurrentPage('progress')}
-            onLogout={handleLogout}
-          />
-        )
-      case 'practice':
-        return (
-          <PracticePage
-            onBack={() => {
-              setDesiredMode(undefined)
-              setCurrentPage('home')
-            }}
-            autoStart={true}
-            desiredMode={desiredMode}
-            key="practice-page" // Force re-render when navigating to practice
-          />
-        )
-      case 'progress':
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-6">
-                <button
-                  onClick={() => setCurrentPage('home')}
-                  className="flex items-center gap-2 text-primary hover:underline"
-                >
-                  ← Back to Home
-                </button>
-              </div>
-              <ProgressGrid
-                email={user.email || ''}
-                gradeLevel={user.user_metadata?.grade_level || '3'}
-              />
-            </div>
+  const currentPath = location.pathname
+
+  if (currentPath === '/practice') {
+    return (
+      <PracticePage
+        onBack={() => {
+          setDesiredMode(undefined)
+          navigate('/')
+        }}
+        autoStart={true}
+        desiredMode={desiredMode}
+        key="practice-page"
+      />
+    )
+  }
+
+  if (currentPath === '/progress') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-6">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 text-primary hover:underline"
+            >
+              ← Back to Home
+            </button>
           </div>
-        )
-      case 'coach':
-        return (
-          <CoachDashboard
-            onLogout={handleLogout}
+          <ProgressGrid
+            email={user.email || ''}
+            gradeLevel={user.user_metadata?.grade_level || '3'}
           />
-        )
-      case 'admin':
-        return (
-          <AdminDashboard
-            onLogout={handleLogout}
-          />
-        )
-      default:
-        return (
-          <StudentHome
-            onStartPlacement={(mode) => {
-              setDesiredMode(mode)
-              setCurrentPage('practice')
-            }}
-            onStartPractice={(mode) => {
-              setDesiredMode(mode)
-              setCurrentPage('practice')
-            }}
-            onViewProgress={() => setCurrentPage('progress')}
-            onLogout={handleLogout}
-          />
-        )
-    }
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <StudentHome
+      onStartPlacement={(mode) => {
+        setDesiredMode(mode)
+        navigate('/practice')
+      }}
+      onStartPractice={(mode) => {
+        setDesiredMode(mode)
+        navigate('/practice')
+      }}
+      onViewProgress={() => navigate('/progress')}
+      onLogout={handleLogout}
+    />
+  )
+}
+
+function App() {
+  const handleAdminLogout = () => {
+    window.location.href = '/'
   }
 
   return (
     <Router>
-      <div className="App">
-        {isSuperAdmin ? (
-          <AdminDashboard onLogout={handleLogout} />
-        ) : isCoach ? (
-          <CoachDashboard onLogout={handleLogout} />
-        ) : (
-          renderCurrentPage()
-        )}
-      </div>
+      <Routes>
+        {/* Public Admin Route - No Authentication Required */}
+        <Route path="/admin" element={<AdminDashboard onLogout={handleAdminLogout} />} />
+
+        {/* Student Routes - Require Email Login */}
+        <Route path="/*" element={<StudentRoutes />} />
+      </Routes>
     </Router>
   )
 }
