@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { Settings, Save, RotateCcw } from 'lucide-react'
 import type { Student } from '@/types'
 
@@ -31,7 +31,7 @@ export function GuardrailsSettings({ student, onUpdate }: GuardrailsSettingsProp
         .single()
 
       if (error && error.code !== 'PGRST116') throw error
-      setCurrentGuardrail(data?.guardrails_level || '1-9')
+      setCurrentGuardrail((data?.guardrails_level as '1-5' | '1-9' | '1-12') || '1-9')
     } catch (err) {
       console.error('Failed to fetch current guardrail:', err)
       setCurrentGuardrail('1-9')

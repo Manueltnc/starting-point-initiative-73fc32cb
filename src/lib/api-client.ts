@@ -1,5 +1,4 @@
 // Unified API Client for Multiplication Wizard App
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type {
   MathProgress,
   MathGridCell,
@@ -9,6 +8,8 @@ import type {
   DailyDifficultyMetrics,
   CohortMetrics,
 } from '@/types'
+import { supabase } from '@/integrations/supabase/client'
+const sb = supabase as any
 
 export type StudentJourneyState = 'needs_placement' | 'placement_in_progress' | 'placement_completed' | 'practice_ready'
 
@@ -24,11 +25,6 @@ export interface SessionUpdateData {
 }
 
 export class UnifiedApiClient {
-  private supabase: SupabaseClient
-
-  constructor(supabaseUrl: string, supabaseKey: string) {
-    this.supabase = createClient(supabaseUrl, supabaseKey)
-  }
 
   // Helper to get current user from localStorage (bypassing Supabase Auth)
   private getCurrentUser(): { id: string; email: string; metadata: any } | null {
@@ -57,7 +53,7 @@ export class UnifiedApiClient {
     const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
-    const { data, error } = await this.supabase
+    const { data, error } = await sb
       .from('multiplications_app_learning_sessions')
       .insert({
         student_id: user.id,
@@ -76,7 +72,7 @@ export class UnifiedApiClient {
   }
 
   async updateSession(sessionId: string, updates: SessionUpdateData): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await sb
       .from('multiplications_app_learning_sessions')
       .update({
         completed_items: updates.itemsAttempted,
@@ -95,7 +91,7 @@ export class UnifiedApiClient {
   }
 
   async completeSession(sessionId: string): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await sb
       .from('multiplications_app_learning_sessions')
       .update({
         status: 'completed',
@@ -117,7 +113,7 @@ export class UnifiedApiClient {
     timeSpent: number,
     attemptNumber: number
   ): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await sb
       .from('multiplications_app_question_attempts')
       .insert({
         session_id: sessionId,
@@ -142,7 +138,7 @@ export class UnifiedApiClient {
     const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
-    const { data, error } = await this.supabase
+    const { data, error } = await sb
       .from('multiplications_app_math_grid_progress')
       .select('*')
       .eq('student_id', user.id)
@@ -153,11 +149,11 @@ export class UnifiedApiClient {
     // If no progress exists, create initial grid
     if (!data) {
       const initialGrid = this.createInitialGrid()
-      const { error: insertError } = await this.supabase
+      const { error: insertError } = await sb
         .from('multiplications_app_math_grid_progress')
         .insert({
           student_id: user.id,
-          grid_state: initialGrid,
+          grid_state: initialGrid as any,
           guardrails_level: '1-9',
           total_correct_answers: 0,
           total_attempts: 0
@@ -189,7 +185,7 @@ export class UnifiedApiClient {
 
   async updateMathGrid(studentId: string, gridUpdates: MathGridCell[]): Promise<void> {
     // Fetch current grid
-    const { data: currentData, error: fetchError } = await this.supabase
+    const { data: currentData, error: fetchError } = await sb
       .from('multiplications_app_math_grid_progress')
       .select('grid_state, total_correct_answers, total_attempts')
       .eq('student_id', studentId)
@@ -200,18 +196,18 @@ export class UnifiedApiClient {
     // If no grid exists, create one first
     if (!currentData) {
       const initialGrid = this.createInitialGrid()
-      await this.supabase
+      await sb
         .from('multiplications_app_math_grid_progress')
         .insert({
           student_id: studentId,
-          grid_state: initialGrid,
+          grid_state: initialGrid as any,
           guardrails_level: '1-9',
           total_correct_answers: 0,
           total_attempts: 0
         })
       
       // Retry fetch
-      const { data: retryData, error: retryError } = await this.supabase
+      const { data: retryData, error: retryError } = await sb
         .from('multiplications_app_math_grid_progress')
         .select('grid_state, total_correct_answers, total_attempts')
         .eq('student_id', studentId)
@@ -236,10 +232,10 @@ export class UnifiedApiClient {
       })
       
       // Update in database
-      const { error: updateError } = await this.supabase
+      const { error: updateError } = await sb
         .from('multiplications_app_math_grid_progress')
         .update({
-          grid_state: gridState,
+          grid_state: gridState as any,
           total_correct_answers: totalCorrect,
           total_attempts: totalAttempts,
           updated_at: new Date().toISOString()
@@ -266,10 +262,10 @@ export class UnifiedApiClient {
     })
 
     // Update in database
-    const { error: updateError } = await this.supabase
+    const { error: updateError } = await sb
       .from('multiplications_app_math_grid_progress')
       .update({
-        grid_state: gridState,
+        grid_state: gridState as any,
         total_correct_answers: totalCorrect,
         total_attempts: totalAttempts,
         updated_at: new Date().toISOString()
@@ -280,7 +276,7 @@ export class UnifiedApiClient {
   }
 
   async setMathGuardrail(studentId: string, guardrail: '1-5' | '1-9' | '1-12'): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await sb
       .from('multiplications_app_math_grid_progress')
       .update({
         guardrails_level: guardrail,
@@ -356,7 +352,7 @@ export class UnifiedApiClient {
       appType?: string
     }
   ): Promise<DailyStudentMetrics[]> {
-    let query = this.supabase
+    let query = sb
       .from('multiplications_app_daily_student_metrics')
       .select('*')
       .eq('student_id', studentId)
@@ -387,7 +383,7 @@ export class UnifiedApiClient {
       appType?: string
     }
   ): Promise<DailyDifficultyMetrics[]> {
-    let query = this.supabase
+    let query = sb
       .from('multiplications_app_daily_difficulty_metrics')
       .select('*')
       .eq('student_id', studentId)
@@ -416,7 +412,7 @@ export class UnifiedApiClient {
     gradeLevel?: string
   }): Promise<CohortMetrics> {
     // This is a simplified version - in production you'd want to use database functions
-    const { data: metrics, error } = await this.supabase
+    const { data: metrics, error } = await sb
       .from('multiplications_app_daily_student_metrics')
       .select('*')
 
@@ -430,7 +426,7 @@ export class UnifiedApiClient {
     const averageTimePerQuestion = metrics?.reduce((sum, m) => sum + m.avg_time_seconds, 0) / (metrics?.length || 1) || 0
 
     // Get difficulty breakdown
-    const { data: difficultyData } = await this.supabase
+    const { data: difficultyData } = await sb
       .from('multiplications_app_daily_difficulty_metrics')
       .select('*')
 
@@ -458,7 +454,7 @@ export class UnifiedApiClient {
   }
 
   async getTimeBucketConfig(): Promise<TimeBucketConfig> {
-    const { data, error } = await this.supabase
+    const { data, error } = await sb
       .from('multiplications_app_config')
       .select('value')
       .eq('key', 'time_bucket_config')
@@ -468,15 +464,15 @@ export class UnifiedApiClient {
       return { fastThreshold: 5, mediumThreshold: 15 }
     }
 
-    return data.value as TimeBucketConfig
+    return data.value as any as TimeBucketConfig
   }
 
   async setTimeBucketConfig(config: TimeBucketConfig): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await sb
       .from('multiplications_app_config')
       .upsert({
         key: 'time_bucket_config',
-        value: config,
+        value: config as any,
         updated_at: new Date().toISOString()
       })
 
@@ -493,7 +489,7 @@ export class UnifiedApiClient {
     const offset = (page - 1) * pageSize
 
     // This is a simplified version - you'd want to create a database view or function for this
-    const { data, error, count } = await this.supabase
+    const { data, error, count } = await sb
       .from('multiplications_app_math_grid_progress')
       .select('*', { count: 'exact' })
       .range(offset, offset + pageSize - 1)
@@ -547,7 +543,7 @@ export class UnifiedApiClient {
 }
 
 // Factory function to create API client
-export function createApiClient(supabaseUrl: string, supabaseKey: string): UnifiedApiClient {
-  return new UnifiedApiClient(supabaseUrl, supabaseKey)
+export function createApiClient(_supabaseUrl?: string, _supabaseKey?: string): UnifiedApiClient {
+  return new UnifiedApiClient()
 }
 

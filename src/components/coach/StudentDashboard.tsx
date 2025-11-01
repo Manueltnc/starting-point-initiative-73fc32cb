@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { AIDifficultyAdjustment } from '@/lib/ai-difficulty-adjustment'
 import { Users, Trophy, Target, Clock, BarChart3, Brain, AlertTriangle } from 'lucide-react'

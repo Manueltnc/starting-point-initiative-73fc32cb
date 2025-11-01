@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { createApiClient } from '@/lib/api-client'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { getPlacementQuestionCount, PLACEMENT_CONFIG, classifyTime } from '@/lib/config'
 import type { MathProblem, MathSessionState } from '@/types'
 
