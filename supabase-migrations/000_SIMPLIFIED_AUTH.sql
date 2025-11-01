@@ -30,8 +30,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Step 3: Create question_attempts table if it doesn't exist
-CREATE TABLE IF NOT EXISTS question_attempts (
+-- Step 3: Create question_attempts table if it doesn't exist (MULTIPLICATIONS APP)
+CREATE TABLE IF NOT EXISTS multiplications_app_question_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL,
   student_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -47,46 +47,46 @@ CREATE TABLE IF NOT EXISTS question_attempts (
 );
 
 -- Enable RLS
-ALTER TABLE question_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE multiplications_app_question_attempts ENABLE ROW LEVEL SECURITY;
 
--- Step 4: Create simple, clean RLS policies
+-- Step 4: Create simple, clean RLS policies (MULTIPLICATIONS APP ONLY)
 
 -- Question attempts policies
-CREATE POLICY "Users can insert own question attempts" ON question_attempts
+CREATE POLICY "Users can insert own question attempts" ON multiplications_app_question_attempts
   FOR INSERT WITH CHECK (auth.uid() = student_id);
 
-CREATE POLICY "Users can read own question attempts" ON question_attempts
+CREATE POLICY "Users can read own question attempts" ON multiplications_app_question_attempts
   FOR SELECT USING (auth.uid() = student_id);
 
-CREATE POLICY "Super admins can read all question attempts" ON question_attempts
+CREATE POLICY "Super admins can read all question attempts" ON multiplications_app_question_attempts
   FOR SELECT USING (is_super_admin(auth.uid()));
 
 -- Daily metrics policies
-CREATE POLICY "Users can read own daily metrics" ON daily_student_metrics
+CREATE POLICY "Users can read own daily metrics" ON multiplications_app_daily_student_metrics
   FOR SELECT USING (auth.uid() = student_id);
 
-CREATE POLICY "Super admins can read all daily metrics" ON daily_student_metrics
+CREATE POLICY "Super admins can read all daily metrics" ON multiplications_app_daily_student_metrics
   FOR SELECT USING (is_super_admin(auth.uid()));
 
--- Difficulty metrics policies  
-CREATE POLICY "Users can read own difficulty metrics" ON daily_difficulty_metrics
+-- Difficulty metrics policies
+CREATE POLICY "Users can read own difficulty metrics" ON multiplications_app_daily_difficulty_metrics
   FOR SELECT USING (auth.uid() = student_id);
 
-CREATE POLICY "Super admins can read all difficulty metrics" ON daily_difficulty_metrics
+CREATE POLICY "Super admins can read all difficulty metrics" ON multiplications_app_daily_difficulty_metrics
   FOR SELECT USING (is_super_admin(auth.uid()));
 
 -- App config policies
-CREATE POLICY "Everyone can read app config" ON app_config
+CREATE POLICY "Everyone can read app config" ON multiplications_app_config
   FOR SELECT USING (true);
 
-CREATE POLICY "Super admins can manage app config" ON app_config
+CREATE POLICY "Super admins can manage app config" ON multiplications_app_config
   FOR ALL USING (is_super_admin(auth.uid()));
 
 -- Step 5: Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_question_attempts_student_date ON question_attempts(student_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_question_attempts_student_date_classification ON question_attempts(student_id, created_at, time_classification);
-CREATE INDEX IF NOT EXISTS idx_question_attempts_student_multiplicand_multiplier ON question_attempts(student_id, multiplicand, multiplier);
-CREATE INDEX IF NOT EXISTS idx_question_attempts_et_date ON question_attempts((created_at AT TIME ZONE 'America/New_York')::date);
+CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_student_date ON multiplications_app_question_attempts(student_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_student_date_classification ON multiplications_app_question_attempts(student_id, created_at, time_classification);
+CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_student_multiplicand_multiplier ON multiplications_app_question_attempts(student_id, multiplicand, multiplier);
+CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_et_date ON multiplications_app_question_attempts((created_at AT TIME ZONE 'America/New_York')::date);
 
 -- Step 6: Update API functions to use auth.users metadata
 CREATE OR REPLACE FUNCTION get_user_roles(user_uuid UUID)
@@ -99,8 +99,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Step 7: Verify installation
 DO $$
 BEGIN
-  RAISE NOTICE 'Simplified auth migration completed successfully!';
-  RAISE NOTICE 'question_attempts table: %', (SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'question_attempts'));
+  RAISE NOTICE 'Simplified auth migration completed successfully (MULTIPLICATIONS APP)';
+  RAISE NOTICE 'multiplications_app_question_attempts table: %', (SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'multiplications_app_question_attempts'));
   RAISE NOTICE 'is_super_admin function: %', (SELECT EXISTS (SELECT 1 FROM information_schema.routines WHERE routine_name = 'is_super_admin'));
   RAISE NOTICE 'get_user_role function: %', (SELECT EXISTS (SELECT 1 FROM information_schema.routines WHERE routine_name = 'get_user_role'));
 END $$;

@@ -4,12 +4,12 @@
 -- =====================================================
 
 -- 1. Rename all tables
-ALTER TABLE learning_sessions RENAME TO multiplications_app_learning_sessions;
-ALTER TABLE math_grid_progress RENAME TO multiplications_app_math_grid_progress;
-ALTER TABLE question_attempts RENAME TO multiplications_app_question_attempts;
-ALTER TABLE daily_student_metrics RENAME TO multiplications_app_daily_student_metrics;
-ALTER TABLE daily_difficulty_metrics RENAME TO multiplications_app_daily_difficulty_metrics;
-ALTER TABLE app_config RENAME TO multiplications_app_app_config;
+ALTER TABLE IF EXISTS learning_sessions RENAME TO multiplications_app_learning_sessions;
+ALTER TABLE IF EXISTS math_grid_progress RENAME TO multiplications_app_math_grid_progress;
+ALTER TABLE IF EXISTS question_attempts RENAME TO multiplications_app_question_attempts;
+ALTER TABLE IF EXISTS daily_student_metrics RENAME TO multiplications_app_daily_student_metrics;
+ALTER TABLE IF EXISTS daily_difficulty_metrics RENAME TO multiplications_app_daily_difficulty_metrics;
+ALTER TABLE IF EXISTS app_config RENAME TO multiplications_app_config;
 
 -- 2. Drop old indexes (they were renamed automatically but let's recreate with proper names)
 DROP INDEX IF EXISTS idx_question_attempts_student_date;
@@ -114,7 +114,7 @@ DECLARE
   time_classification TEXT;
 BEGIN
   -- Get time bucket configuration
-  SELECT value INTO time_buckets FROM multiplications_app_app_config WHERE key = 'time_buckets';
+  SELECT value INTO time_buckets FROM multiplications_app_config WHERE key = 'time_buckets';
   fast_threshold := (time_buckets->>'fast_threshold')::NUMERIC;
   medium_threshold := (time_buckets->>'medium_threshold')::NUMERIC;
   
