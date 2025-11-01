@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { createApiClient } from '@/lib/api-client'
 import { supabase } from '@/lib/supabase'
 import { getPlacementQuestionCount, PLACEMENT_CONFIG, classifyTime } from '@/lib/config'
@@ -9,6 +10,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const apiClient = createApiClient(supabaseUrl, supabaseKey)
 
 export function useMathSession() {
+  const { user } = useAuth()
   const [sessionState, setSessionState] = useState<MathSessionState | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +78,6 @@ export function useMathSession() {
   // Check for active sessions on mount
   const checkForActiveSessions = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return null
 
       const { data: activeSessions, error } = await supabase
@@ -88,7 +89,7 @@ export function useMathSession() {
       console.error('Failed to check for active sessions:', err)
       return null
     }
-  }, [])
+  }, [user])
 
   const startPlacementTest = useCallback(async (email: string, gradeLevel: string) => {
     setLoading(true)
@@ -251,7 +252,6 @@ export function useMathSession() {
     const isCorrect = answer === currentProblem.answer
 
     // Get current user for student ID
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
     // Record detailed question attempt
@@ -430,7 +430,6 @@ export function useMathSession() {
       // Only update math grid progress for practice sessions, NOT placement tests
       if (sessionState.sessionType === 'practice' && sessionState.gridUpdates.length > 0) {
         // Get current user for correct studentId
-        const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           await apiClient.updateMathGrid(
             user.id, // Use correct studentId, not sessionId

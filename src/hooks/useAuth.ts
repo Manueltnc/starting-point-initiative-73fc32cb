@@ -26,9 +26,19 @@ export function useAuth() {
     const metadataStr = localStorage.getItem(USER_METADATA_STORAGE_KEY)
 
     if (email && userId) {
+      // Check if the userId is a valid UUID, if not, regenerate it
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      let validUserId = userId
+      
+      if (!uuidRegex.test(userId)) {
+        console.warn('Invalid UUID detected, generating new one')
+        validUserId = crypto.randomUUID()
+        localStorage.setItem(USER_ID_STORAGE_KEY, validUserId)
+      }
+
       const metadata = metadataStr ? JSON.parse(metadataStr) : {}
       setUser({
-        id: userId,
+        id: validUserId,
         email,
         user_metadata: metadata
       })
