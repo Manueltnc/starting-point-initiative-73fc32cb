@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createApiClient } from '@/lib/api-client'
-import { supabase } from '@/integrations/supabase/client'
+// (supabase auth removed for local auth flow)
 
 const supabaseUrl = 'https://pyoyzyzhcwrqqyujjmze.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5b3l6eXpoY3dycXF5dWpqbXplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwODA5MTUsImV4cCI6MjA2NzY1NjkxNX0.CG1T1e4pUhipDyesjNiCD2YSDFXQi5dAhpKJZx6ytFk'
@@ -18,18 +18,12 @@ export const useStudentJourney = () => {
     setError(null)
     
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setJourneyState('needs_placement')
-        return
-      }
-
       const state = await apiClient.getCurrentJourneyState()
       setJourneyState(state)
     } catch (err) {
       console.error('Failed to fetch journey state:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch journey state')
-      setJourneyState('needs_placement') // Default fallback
+      setJourneyState('needs_placement')
     } finally {
       setLoading(false)
     }
@@ -38,19 +32,8 @@ export const useStudentJourney = () => {
   useEffect(() => {
     fetchJourneyState()
 
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        fetchJourneyState()
-      } else {
-        setJourneyState('needs_placement')
-        setLoading(false)
-      }
-    })
-
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
+    // No Supabase auth listener; rely on local auth
+    return () => {}
   }, [])
 
   const refreshJourneyState = () => {

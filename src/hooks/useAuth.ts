@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '@/integrations/supabase/client'
 
 // Simplified user type for MVP (no Supabase Auth)
 export interface SimpleUser {
@@ -42,6 +43,19 @@ export function useAuth() {
         email,
         user_metadata: metadata
       })
+
+      ;(async () => {
+        try {
+          await (supabase as any).rpc('ensure_user_exists', {
+            _id: validUserId,
+            _email: email,
+            _display_name: metadata?.display_name || email.split('@')[0],
+            _grade_level: metadata?.grade_level || '3'
+          })
+        } catch (e) {
+          console.error('ensure_user_exists failed on load', e)
+        }
+      })()
     }
 
     setLoading(false)
@@ -65,6 +79,19 @@ export function useAuth() {
     }
     
     setUser(newUser)
+
+    ;(async () => {
+      try {
+        await (supabase as any).rpc('ensure_user_exists', {
+          _id: userId,
+          _email: email,
+          _display_name: metadata?.display_name || email.split('@')[0],
+          _grade_level: metadata?.grade_level || '3'
+        })
+      } catch (e) {
+        console.error('ensure_user_exists failed on signIn', e)
+      }
+    })()
     return newUser
   }
 

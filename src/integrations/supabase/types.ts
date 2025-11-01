@@ -1224,6 +1224,15 @@ export type Database = {
             Returns: string
           }
       delete_test_users: { Args: never; Returns: number }
+      ensure_user_exists: {
+        Args: {
+          _display_name?: string
+          _email: string
+          _grade_level?: string
+          _id: string
+        }
+        Returns: undefined
+      }
       get_active_sessions_for_student: {
         Args: { student_uuid: string }
         Returns: {

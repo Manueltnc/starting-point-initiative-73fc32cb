@@ -53,6 +53,14 @@ export class UnifiedApiClient {
     const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
+    const { error: ensureErr } = await sb.rpc('ensure_user_exists', {
+      _id: user.id,
+      _email: user.email,
+      _display_name: user.metadata?.display_name || user.email.split('@')[0],
+      _grade_level: user.metadata?.grade_level || _gradeLevel
+    })
+    if (ensureErr) throw ensureErr
+
     const { data, error } = await sb
       .from('multiplications_app_learning_sessions')
       .insert({
@@ -315,8 +323,7 @@ export class UnifiedApiClient {
     const user = this.getCurrentUser()
     if (!user) return 'needs_placement'
 
-    // Check if student has completed placement test
-    const { data: sessions, error } = await this.supabase
+    const { data: sessions, error } = await sb
       .from('multiplications_app_learning_sessions')
       .select('session_type, status')
       .eq('student_id', user.id)
@@ -325,14 +332,17 @@ export class UnifiedApiClient {
 
     if (error) return 'needs_placement'
 
-    const completedPlacement = sessions?.some(
-      s => s.session_type === 'placement' && s.status === 'completed'
+    type SessionRow = { session_type: string; status: string }
+    const rows: SessionRow[] = (sessions || []) as SessionRow[]
+
+    const completedPlacement = rows.some(
+      (s: SessionRow) => s.session_type === 'placement' && s.status === 'completed'
     )
 
     if (completedPlacement) return 'placement_completed'
 
-    const inProgressPlacement = sessions?.some(
-      s => s.session_type === 'placement' && s.status === 'active'
+    const inProgressPlacement = rows.some(
+      (s: SessionRow) => s.session_type === 'placement' && s.status === 'active'
     )
 
     if (inProgressPlacement) return 'placement_in_progress'
@@ -419,11 +429,11 @@ export class UnifiedApiClient {
     if (error) throw error
 
     // Calculate aggregates
-    const totalStudents = new Set(metrics?.map(m => m.student_id)).size
-    const totalAttempts = metrics?.reduce((sum, m) => sum + m.attempted, 0) || 0
-    const totalCorrect = metrics?.reduce((sum, m) => sum + m.correct, 0) || 0
+    const totalStudents = new Set((metrics || []).map((m: any) => m.student_id)).size
+    const totalAttempts = (metrics || []).reduce((sum: number, m: any) => sum + (m.attempted || 0), 0)
+    const totalCorrect = (metrics || []).reduce((sum: number, m: any) => sum + (m.correct || 0), 0)
     const averageAccuracy = totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0
-    const averageTimePerQuestion = metrics?.reduce((sum, m) => sum + m.avg_time_seconds, 0) / (metrics?.length || 1) || 0
+    const averageTimePerQuestion = ((metrics || []).reduce((sum: number, m: any) => sum + (m.avg_time_seconds || 0), 0) / ((metrics || []).length || 1)) || 0
 
     // Get difficulty breakdown
     const { data: difficultyData } = await sb
@@ -436,11 +446,13 @@ export class UnifiedApiClient {
       advanced: { attempted: 0, correct: 0, avgTime: 0 }
     }
 
-    difficultyData?.forEach(d => {
+    const difficultyRows: any[] = (difficultyData as any[]) || []
+    difficultyRows.forEach((d: any) => {
       if (d.difficulty_band in difficultyBreakdown) {
-        difficultyBreakdown[d.difficulty_band as keyof typeof difficultyBreakdown].attempted += d.attempted
-        difficultyBreakdown[d.difficulty_band as keyof typeof difficultyBreakdown].correct += d.correct
-        difficultyBreakdown[d.difficulty_band as keyof typeof difficultyBreakdown].avgTime += d.avg_time_seconds
+        const key = d.difficulty_band as keyof typeof difficultyBreakdown
+        difficultyBreakdown[key].attempted += d.attempted || 0
+        difficultyBreakdown[key].correct += d.correct || 0
+        difficultyBreakdown[key].avgTime += d.avg_time_seconds || 0
       }
     })
 
@@ -455,24 +467,28 @@ export class UnifiedApiClient {
 
   async getTimeBucketConfig(): Promise<TimeBucketConfig> {
     const { data, error } = await sb
-      .from('multiplications_app_config')
+      .from('multiplications_app_app_config')
       .select('value')
-      .eq('key', 'time_bucket_config')
+      .eq('key', 'time_buckets')
       .single()
 
     if (error || !data) {
       return { fastThreshold: 5, mediumThreshold: 15 }
     }
 
-    return data.value as any as TimeBucketConfig
+    const val = data.value as any
+    return {
+      fastThreshold: Number(val.fast_threshold ?? 5),
+      mediumThreshold: Number(val.medium_threshold ?? 15)
+    }
   }
 
   async setTimeBucketConfig(config: TimeBucketConfig): Promise<void> {
     const { error } = await sb
-      .from('multiplications_app_config')
+      .from('multiplications_app_app_config')
       .upsert({
-        key: 'time_bucket_config',
-        value: config as any,
+        key: 'time_buckets',
+        value: { fast_threshold: config.fastThreshold, medium_threshold: config.mediumThreshold } as any,
         updated_at: new Date().toISOString()
       })
 
@@ -496,7 +512,7 @@ export class UnifiedApiClient {
 
     if (error) throw error
 
-    const students: StudentSummary[] = (data || []).map(d => ({
+    const students: StudentSummary[] = (data || []).map((d: any) => ({
       id: d.student_id,
       email: 'student@example.com', // You'd join with auth.users
       displayName: 'Student',
