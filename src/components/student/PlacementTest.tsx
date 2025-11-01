@@ -91,7 +91,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
         clearTimeout(timer)
       }
     }
-  }, [showResult, sessionState])
+  }, [showResult, sessionState, isSubmitting, getNextProblem, advanceToNextProblem, completeSession, onComplete, onJourneyStateChange])
 
   useEffect(() => {
     if (startTime && !showResult) {

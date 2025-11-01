@@ -81,14 +81,9 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
 
         if (isLastProblem) {
           onComplete()
-        } else {
-          // Reset for next problem
-          setStartTime(Date.now())
-          setTimeSpent(0)
-          setUserAnswer('')
-          setShowResult(false)
-          setLastResult(null)
         }
+        // Note: For non-last problems, the parent (PracticeGrid) will handle advancing
+        // and the useEffect will reset state when the problem prop changes
         setAdvanceTimerRef(null)
       }, 2000)
 
