@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,16 +14,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [justSignedIn, setJustSignedIn] = useState(false)
-  const { signIn, user } = useAuth()
-
-  // Wait for user state to update before calling onSuccess
-  useEffect(() => {
-    if (justSignedIn && user) {
-      onSuccess()
-      setJustSignedIn(false)
-    }
-  }, [user, justSignedIn, onSuccess])
+  const { signIn } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,10 +29,15 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       }
 
       // Sign in with email only (no password)
-      signIn(email, { role: 'student' })
-      setJustSignedIn(true)
+      const newUser = signIn(email, { role: 'student' })
+      
+      // Call onSuccess immediately since we have the user
+      if (newUser) {
+        onSuccess()
+      }
     } catch (err) {
       setError('An unexpected error occurred')
+    } finally {
       setLoading(false)
     }
   }

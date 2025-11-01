@@ -38,9 +38,9 @@ export function useAuth() {
   }, [])
 
   const signIn = (email: string, metadata?: any) => {
-    // Generate a simple ID based on email (or use existing one)
+    // Generate a proper UUID (or use existing one)
     const existingId = localStorage.getItem(USER_ID_STORAGE_KEY)
-    const userId = existingId || `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
+    const userId = existingId || crypto.randomUUID()
 
     localStorage.setItem(USER_STORAGE_KEY, email)
     localStorage.setItem(USER_ID_STORAGE_KEY, userId)
@@ -48,11 +48,14 @@ export function useAuth() {
       localStorage.setItem(USER_METADATA_STORAGE_KEY, JSON.stringify(metadata))
     }
 
-    setUser({
+    const newUser = {
       id: userId,
       email,
       user_metadata: metadata || {}
-    })
+    }
+    
+    setUser(newUser)
+    return newUser
   }
 
   const signOut = () => {
