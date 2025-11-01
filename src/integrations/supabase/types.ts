@@ -1231,7 +1231,7 @@ export type Database = {
           _grade_level?: string
           _id: string
         }
-        Returns: undefined
+        Returns: string
       }
       get_active_sessions_for_student: {
         Args: { student_uuid: string }

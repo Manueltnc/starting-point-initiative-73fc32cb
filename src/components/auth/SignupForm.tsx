@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Loader2 } from 'lucide-react'
 
 interface SignupFormProps {
@@ -15,9 +15,10 @@ export function SignupForm({ onSuccess, onSwitchToLogin }: SignupFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [gradeLevel, setGradeLevel] = useState('')
+  const [gradeLevel, setGradeLevel] = useState('3')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { signUp } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,19 +26,29 @@ export function SignupForm({ onSuccess, onSwitchToLogin }: SignupFormProps) {
     setError('')
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            display_name: displayName,
-            grade_level: gradeLevel,
-          },
-        },
+      if (!email || !email.includes('@')) {
+        setError('Please enter a valid email address')
+        setLoading(false)
+        return
+      }
+
+      if (!password || password.length < 6) {
+        setError('Password must be at least 6 characters')
+        setLoading(false)
+        return
+      }
+
+      const { error: signUpError } = await signUp(email, password, {
+        display_name: displayName || email.split('@')[0],
+        grade_level: gradeLevel || '3',
       })
 
-      if (error) {
-        setError(error.message)
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
+          setError('This email is already registered. Please sign in instead.')
+        } else {
+          setError(signUpError.message)
+        }
       } else {
         onSuccess()
       }

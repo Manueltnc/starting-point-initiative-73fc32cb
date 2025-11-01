@@ -1,111 +1,95 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
+import type { User, Session } from '@supabase/supabase-js'
 
-// Simplified user type for MVP (no Supabase Auth)
-export interface SimpleUser {
-  id: string
-  email: string
-  user_metadata?: {
-    role?: string
-    display_name?: string
-    grade_level?: string
-  }
-}
-
-const USER_STORAGE_KEY = 'user_email'
 const USER_ID_STORAGE_KEY = 'user_id'
+const USER_EMAIL_STORAGE_KEY = 'user_email'
 const USER_METADATA_STORAGE_KEY = 'user_metadata'
 
 export function useAuth() {
-  const [user, setUser] = useState<SimpleUser | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get user from localStorage
-    const email = localStorage.getItem(USER_STORAGE_KEY)
-    const userId = localStorage.getItem(USER_ID_STORAGE_KEY)
-    const metadataStr = localStorage.getItem(USER_METADATA_STORAGE_KEY)
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
 
-    if (email && userId) {
-      // Check if the userId is a valid UUID, if not, regenerate it
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      let validUserId = userId
-      
-      if (!uuidRegex.test(userId)) {
-        console.warn('Invalid UUID detected, generating new one')
-        validUserId = crypto.randomUUID()
-        localStorage.setItem(USER_ID_STORAGE_KEY, validUserId)
-      }
+        if (session?.user) {
+          // Defer Supabase RPC call to avoid deadlock
+          setTimeout(async () => {
+            try {
+              const { data: canonicalId } = await supabase.rpc('ensure_user_exists', {
+                _id: session.user.id,
+                _email: session.user.email!,
+                _display_name: session.user.user_metadata?.display_name || session.user.email!.split('@')[0],
+                _grade_level: session.user.user_metadata?.grade_level || '3'
+              })
 
-      const metadata = metadataStr ? JSON.parse(metadataStr) : {}
-      setUser({
-        id: validUserId,
-        email,
-        user_metadata: metadata
-      })
-
-      ;(async () => {
-        try {
-          await (supabase as any).rpc('ensure_user_exists', {
-            _id: validUserId,
-            _email: email,
-            _display_name: metadata?.display_name || email.split('@')[0],
-            _grade_level: metadata?.grade_level || '3'
-          })
-        } catch (e) {
-          console.error('ensure_user_exists failed on load', e)
+              // Mirror the canonical id to localStorage for api-client compatibility
+              if (canonicalId) {
+                localStorage.setItem(USER_ID_STORAGE_KEY, canonicalId)
+                localStorage.setItem(USER_EMAIL_STORAGE_KEY, session.user.email!)
+                localStorage.setItem(USER_METADATA_STORAGE_KEY, JSON.stringify(session.user.user_metadata || {}))
+              }
+            } catch (e) {
+              console.error('ensure_user_exists failed:', e)
+            }
+          }, 0)
+        } else {
+          // Clear localStorage when logged out
+          localStorage.removeItem(USER_ID_STORAGE_KEY)
+          localStorage.removeItem(USER_EMAIL_STORAGE_KEY)
+          localStorage.removeItem(USER_METADATA_STORAGE_KEY)
         }
-      })()
-    }
+      }
+    )
 
-    setLoading(false)
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = (email: string, metadata?: any) => {
-    // Generate a proper UUID (or use existing one)
-    const existingId = localStorage.getItem(USER_ID_STORAGE_KEY)
-    const userId = existingId || crypto.randomUUID()
-
-    localStorage.setItem(USER_STORAGE_KEY, email)
-    localStorage.setItem(USER_ID_STORAGE_KEY, userId)
-    if (metadata) {
-      localStorage.setItem(USER_METADATA_STORAGE_KEY, JSON.stringify(metadata))
-    }
-
-    const newUser = {
-      id: userId,
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      user_metadata: metadata || {}
-    }
-    
-    setUser(newUser)
-
-    ;(async () => {
-      try {
-        await (supabase as any).rpc('ensure_user_exists', {
-          _id: userId,
-          _email: email,
-          _display_name: metadata?.display_name || email.split('@')[0],
-          _grade_level: metadata?.grade_level || '3'
-        })
-      } catch (e) {
-        console.error('ensure_user_exists failed on signIn', e)
-      }
-    })()
-    return newUser
+      password,
+    })
+    return { error }
   }
 
-  const signOut = () => {
-    localStorage.removeItem(USER_STORAGE_KEY)
-    localStorage.removeItem(USER_ID_STORAGE_KEY)
-    localStorage.removeItem(USER_METADATA_STORAGE_KEY)
-    setUser(null)
+  const signUp = async (email: string, password: string, metadata?: any) => {
+    const redirectUrl = `${window.location.origin}/`
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: metadata || {}
+      }
+    })
+    return { error }
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
   }
 
   return {
     user,
+    session,
     loading,
     signIn,
+    signUp,
     signOut,
   }
 }

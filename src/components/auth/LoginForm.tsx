@@ -12,6 +12,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { signIn } = useAuth()
@@ -28,11 +29,21 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         return
       }
 
-      // Sign in with email only (no password)
-      const newUser = signIn(email, { role: 'student' })
+      if (!password || password.length < 6) {
+        setError('Password must be at least 6 characters')
+        setLoading(false)
+        return
+      }
+
+      const { error: signInError } = await signIn(email, password)
       
-      // Call onSuccess immediately since we have the user
-      if (newUser) {
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password')
+        } else {
+          setError(signInError.message)
+        }
+      } else {
         onSuccess()
       }
     } catch (err) {
@@ -64,6 +75,19 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               disabled={loading}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              minLength={6}
+            />
+          </div>
           {error && (
             <div className="text-sm text-destructive text-center">
               {error}
@@ -71,7 +95,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue
+            Sign In
           </Button>
         </form>
       </CardContent>
