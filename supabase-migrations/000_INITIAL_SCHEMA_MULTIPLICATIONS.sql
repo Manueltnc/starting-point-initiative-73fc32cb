@@ -1,20 +1,50 @@
--- Analytics and Admin Dashboard Schema - MULTIPLICATIONS APP
--- Migration: 001_analytics_schema.sql
--- NOTE: This migration now creates tables with multiplications_app_ prefix
+-- =====================================================
+-- INITIAL SCHEMA FOR MULTIPLICATIONS APP
+-- Creates all core tables with multiplications_app_ prefix
+-- This should be run FIRST before any other migrations
+-- =====================================================
 
 -- Enable timezone support
 SET timezone = 'America/New_York';
 
--- User roles table (shared across apps - NOT prefixed)
-CREATE TABLE IF NOT EXISTS user_roles (
+-- Learning Sessions Table
+CREATE TABLE IF NOT EXISTS multiplications_app_learning_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT CHECK (role IN ('student', 'parent', 'coach', 'admin', 'super_admin')) NOT NULL,
+  student_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  app_type TEXT NOT NULL DEFAULT 'math',
+  session_type TEXT CHECK (session_type IN ('placement', 'practice', 'assessment')) NOT NULL DEFAULT 'practice',
+  session_name TEXT,
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  status TEXT CHECK (status IN ('active', 'completed', 'abandoned')) NOT NULL DEFAULT 'active',
+  total_items INTEGER DEFAULT 0,
+  completed_items INTEGER DEFAULT 0,
+  correct_answers INTEGER DEFAULT 0,
+  accuracy NUMERIC(5,2) DEFAULT 0,
+  duration_seconds NUMERIC(10,2) DEFAULT 0,
+  average_time_per_question NUMERIC(8,2) DEFAULT 0,
+  fast_answers_count INTEGER DEFAULT 0,
+  medium_answers_count INTEGER DEFAULT 0,
+  slow_answers_count INTEGER DEFAULT 0,
+  metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, role)
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Question attempts table for detailed tracking (MULTIPLICATIONS APP)
+-- Math Grid Progress Table
+CREATE TABLE IF NOT EXISTS multiplications_app_math_grid_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  grid_state JSONB NOT NULL DEFAULT '[]'::jsonb,
+  guardrails_level TEXT CHECK (guardrails_level IN ('1-5', '1-9', '1-12')) NOT NULL DEFAULT '1-9',
+  total_correct_answers INTEGER DEFAULT 0,
+  total_attempts INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Question Attempts Table
 CREATE TABLE IF NOT EXISTS multiplications_app_question_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL,
@@ -30,21 +60,12 @@ CREATE TABLE IF NOT EXISTS multiplications_app_question_attempts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- App configuration for adjustable settings (MULTIPLICATIONS APP)
-CREATE TABLE IF NOT EXISTS multiplications_app_config (
-  key TEXT PRIMARY KEY,
-  value JSONB NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Daily student metrics aggregation table (MULTIPLICATIONS APP)
+-- Daily Student Metrics Table
 CREATE TABLE IF NOT EXISTS multiplications_app_daily_student_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   metric_date DATE NOT NULL,
-  app_type TEXT NOT NULL,
+  app_type TEXT NOT NULL DEFAULT 'math',
   attempted INTEGER DEFAULT 0,
   correct INTEGER DEFAULT 0,
   avg_time_seconds NUMERIC(8,2) DEFAULT 0,
@@ -57,12 +78,12 @@ CREATE TABLE IF NOT EXISTS multiplications_app_daily_student_metrics (
   UNIQUE(student_id, metric_date, app_type)
 );
 
--- Daily difficulty metrics for progression tracking (MULTIPLICATIONS APP)
+-- Daily Difficulty Metrics Table
 CREATE TABLE IF NOT EXISTS multiplications_app_daily_difficulty_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   metric_date DATE NOT NULL,
-  app_type TEXT NOT NULL,
+  app_type TEXT NOT NULL DEFAULT 'math',
   difficulty_band TEXT CHECK (difficulty_band IN ('basic', 'intermediate', 'advanced')) NOT NULL,
   attempted INTEGER DEFAULT 0,
   correct INTEGER DEFAULT 0,
@@ -73,40 +94,47 @@ CREATE TABLE IF NOT EXISTS multiplications_app_daily_difficulty_metrics (
   UNIQUE(student_id, metric_date, app_type, difficulty_band)
 );
 
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role);
+-- App Config Table
+CREATE TABLE IF NOT EXISTS multiplications_app_config (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create Indexes for Performance
+CREATE INDEX IF NOT EXISTS idx_mult_learning_sessions_student_status ON multiplications_app_learning_sessions(student_id, status);
+CREATE INDEX IF NOT EXISTS idx_mult_learning_sessions_student_type ON multiplications_app_learning_sessions(student_id, session_type);
+CREATE INDEX IF NOT EXISTS idx_mult_learning_sessions_created ON multiplications_app_learning_sessions(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_mult_math_grid_student ON multiplications_app_math_grid_progress(student_id);
 
 CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_student_date ON multiplications_app_question_attempts(student_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_student_date_classification ON multiplications_app_question_attempts(student_id, created_at, time_classification);
-CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_student_multiplicand_multiplier ON multiplications_app_question_attempts(student_id, multiplicand, multiplier);
-CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_et_date ON multiplications_app_question_attempts((created_at AT TIME ZONE 'America/New_York')::date);
+CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_time_class ON multiplications_app_question_attempts(time_classification);
+CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_multiplication ON multiplications_app_question_attempts(multiplicand, multiplier);
+CREATE INDEX IF NOT EXISTS idx_mult_question_attempts_session ON multiplications_app_question_attempts(session_id);
 
 CREATE INDEX IF NOT EXISTS idx_mult_daily_student_metrics_student_date ON multiplications_app_daily_student_metrics(student_id, metric_date);
 CREATE INDEX IF NOT EXISTS idx_mult_daily_student_metrics_date ON multiplications_app_daily_student_metrics(metric_date);
-CREATE INDEX IF NOT EXISTS idx_mult_daily_student_metrics_app_type ON multiplications_app_daily_student_metrics(app_type);
 
-CREATE INDEX IF NOT EXISTS idx_mult_daily_difficulty_metrics_student_date ON multiplications_app_daily_difficulty_metrics(student_id, metric_date);
+CREATE INDEX IF NOT EXISTS idx_mult_daily_difficulty_metrics_student_date_band ON multiplications_app_daily_difficulty_metrics(student_id, metric_date, difficulty_band);
 CREATE INDEX IF NOT EXISTS idx_mult_daily_difficulty_metrics_date ON multiplications_app_daily_difficulty_metrics(metric_date);
-CREATE INDEX IF NOT EXISTS idx_mult_daily_difficulty_metrics_difficulty ON multiplications_app_daily_difficulty_metrics(difficulty_band);
 
--- Insert default time bucket configuration
+-- Insert Default Configuration
 INSERT INTO multiplications_app_config (key, value, description) VALUES
 ('time_bucket_config', '{"fastThreshold": 5, "mediumThreshold": 15}', 'Time classification thresholds in seconds')
 ON CONFLICT (key) DO NOTHING;
 
--- Function to check if user is super admin (must be defined before RLS policies)
-CREATE OR REPLACE FUNCTION is_super_admin(user_uuid UUID)
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM user_roles 
-    WHERE user_id = user_uuid AND role = 'super_admin'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Disable RLS for MVP (can be enabled later)
+ALTER TABLE multiplications_app_learning_sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE multiplications_app_math_grid_progress DISABLE ROW LEVEL SECURITY;
+ALTER TABLE multiplications_app_question_attempts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE multiplications_app_daily_student_metrics DISABLE ROW LEVEL SECURITY;
+ALTER TABLE multiplications_app_daily_difficulty_metrics DISABLE ROW LEVEL SECURITY;
+ALTER TABLE multiplications_app_config DISABLE ROW LEVEL SECURITY;
 
--- Function to get difficulty band based on multiplicand and multiplier
+-- Helper Functions
 CREATE OR REPLACE FUNCTION get_difficulty_band(multiplicand INTEGER, multiplier INTEGER)
 RETURNS TEXT AS $$
 BEGIN
@@ -120,8 +148,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Function to upsert daily student metrics (MULTIPLICATIONS APP)
-CREATE OR REPLACE FUNCTION upsert_multiplications_daily_student_metrics()
+-- Trigger function to update learning sessions timestamp
+CREATE OR REPLACE FUNCTION update_multiplications_learning_sessions_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  IF NEW.status != OLD.status OR NEW.completed_items != OLD.completed_items THEN
+    NEW.last_activity_at = NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_learning_sessions_updated_at
+BEFORE UPDATE ON multiplications_app_learning_sessions
+FOR EACH ROW
+EXECUTE FUNCTION update_multiplications_learning_sessions_updated_at();
+
+-- Trigger function for automatic metrics aggregation
+CREATE OR REPLACE FUNCTION upsert_multiplications_daily_metrics()
 RETURNS TRIGGER AS $$
 DECLARE
   et_date DATE;
@@ -129,6 +174,7 @@ DECLARE
   fast_threshold NUMERIC;
   medium_threshold NUMERIC;
   time_classification TEXT;
+  current_difficulty_band TEXT;
 BEGIN
   -- Get Eastern Time date
   et_date := (NEW.created_at AT TIME ZONE 'America/New_York')::date;
@@ -146,6 +192,9 @@ BEGIN
   ELSE
     time_classification := 'slow';
   END IF;
+
+  -- Get difficulty band
+  current_difficulty_band := get_difficulty_band(NEW.multiplicand, NEW.multiplier);
 
   -- Upsert daily student metrics
   INSERT INTO multiplications_app_daily_student_metrics (
@@ -176,7 +225,7 @@ BEGIN
     student_id, metric_date, app_type, difficulty_band, attempted, correct,
     avg_time_seconds, time_spent_seconds
   ) VALUES (
-    NEW.student_id, et_date, 'math', get_difficulty_band(NEW.multiplicand, NEW.multiplier), 1,
+    NEW.student_id, et_date, 'math', current_difficulty_band, 1,
     CASE WHEN NEW.is_correct THEN 1 ELSE 0 END,
     NEW.time_spent_seconds,
     NEW.time_spent_seconds
@@ -193,69 +242,51 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger for automatic aggregation
-DROP TRIGGER IF EXISTS trigger_upsert_daily_metrics ON multiplications_app_question_attempts;
-CREATE TRIGGER trigger_upsert_daily_metrics
-  AFTER INSERT ON multiplications_app_question_attempts
-  FOR EACH ROW
-  EXECUTE FUNCTION upsert_multiplications_daily_student_metrics();
+CREATE TRIGGER trigger_upsert_multiplications_daily_metrics
+AFTER INSERT ON multiplications_app_question_attempts
+FOR EACH ROW
+EXECUTE FUNCTION upsert_multiplications_daily_metrics();
 
--- RLS Policies (NOTE: These will be disabled later by migration 005 for MVP)
-ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE multiplications_app_question_attempts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE multiplications_app_daily_student_metrics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE multiplications_app_daily_difficulty_metrics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE multiplications_app_config ENABLE ROW LEVEL SECURITY;
-
--- User roles policies (fixed to avoid infinite recursion)
-CREATE POLICY "Users can read own roles" ON user_roles
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Super admins can read all roles" ON user_roles
-  FOR SELECT USING (
-    user_id IN (
-      SELECT user_id FROM user_roles
-      WHERE user_id = auth.uid() AND role = 'super_admin'
-      LIMIT 1
-    )
-  );
-
--- Question attempts policies (MULTIPLICATIONS APP)
-CREATE POLICY "Users can insert own question attempts" ON multiplications_app_question_attempts
-  FOR INSERT WITH CHECK (auth.uid() = student_id);
-
-CREATE POLICY "Users can read own question attempts" ON multiplications_app_question_attempts
-  FOR SELECT USING (auth.uid() = student_id);
-
-CREATE POLICY "Super admins can read all question attempts" ON multiplications_app_question_attempts
-  FOR SELECT USING (is_super_admin(auth.uid()));
-
--- Daily metrics policies (MULTIPLICATIONS APP)
-CREATE POLICY "Users can read own daily metrics" ON multiplications_app_daily_student_metrics
-  FOR SELECT USING (auth.uid() = student_id);
-
-CREATE POLICY "Super admins can read all daily metrics" ON multiplications_app_daily_student_metrics
-  FOR SELECT USING (is_super_admin(auth.uid()));
-
-CREATE POLICY "Users can read own difficulty metrics" ON multiplications_app_daily_difficulty_metrics
-  FOR SELECT USING (auth.uid() = student_id);
-
-CREATE POLICY "Super admins can read all difficulty metrics" ON multiplications_app_daily_difficulty_metrics
-  FOR SELECT USING (is_super_admin(auth.uid()));
-
--- App config policies (MULTIPLICATIONS APP)
-CREATE POLICY "Everyone can read app config" ON multiplications_app_config
-  FOR SELECT USING (true);
-
-CREATE POLICY "Super admins can manage app config" ON multiplications_app_config
-  FOR ALL USING (is_super_admin(auth.uid()));
-
--- Function to get user roles
-CREATE OR REPLACE FUNCTION get_user_roles(user_uuid UUID)
-RETURNS TEXT[] AS $$
+-- Function to mark abandoned sessions
+CREATE OR REPLACE FUNCTION mark_abandoned_multiplications_sessions()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
 BEGIN
-  RETURN ARRAY(
-    SELECT role FROM user_roles WHERE user_id = user_uuid
-  );
+  UPDATE multiplications_app_learning_sessions
+  SET status = 'abandoned', updated_at = NOW()
+  WHERE status = 'active'
+  AND last_activity_at < NOW() - INTERVAL '30 minutes';
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+-- Function to get active sessions for a student
+CREATE OR REPLACE FUNCTION get_active_multiplications_sessions(student_uuid uuid)
+RETURNS TABLE(id uuid, session_type text, session_name text, started_at timestamp with time zone, last_activity_at timestamp with time zone, completed_items integer, total_items integer)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    ls.id,
+    ls.session_type,
+    ls.session_name,
+    ls.started_at,
+    ls.last_activity_at,
+    ls.completed_items,
+    ls.total_items
+  FROM multiplications_app_learning_sessions ls
+  WHERE ls.student_id = student_uuid
+  AND ls.status = 'active'
+  AND ls.last_activity_at > NOW() - INTERVAL '2 hours'
+  ORDER BY ls.last_activity_at DESC;
+END;
+$$;
+
+-- Log completion
+DO $$
+BEGIN
+  RAISE NOTICE 'Multiplications app initial schema created successfully';
+  RAISE NOTICE 'All tables created with multiplications_app_ prefix';
+  RAISE NOTICE 'Indexes, triggers, and helper functions installed';
+END $$;

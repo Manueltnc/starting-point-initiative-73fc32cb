@@ -188,7 +188,7 @@ export type Database = {
           },
         ]
       }
-      multiplications_app_app_config: {
+      multiplications_app_config: {
         Row: {
           created_at: string | null
           description: string | null
