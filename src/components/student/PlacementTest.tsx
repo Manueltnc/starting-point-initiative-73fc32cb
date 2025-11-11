@@ -17,21 +17,33 @@ interface PlacementTestProps {
   onJourneyStateChange?: () => void
 }
 
+// State machine for placement test flow
+type PlacementState = 'answering' | 'submitting' | 'showing_result' | 'advancing' | 'completing'
+
 export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateChange }: PlacementTestProps) {
   const { startPlacementTest, submitAnswer, getNextProblem, advanceToNextProblem, getCurrentProblem, completeSession, sessionState, loading } = useMathSession()
   const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(null)
   const [userAnswer, setUserAnswer] = useState('')
   const [timeSpent, setTimeSpent] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
-  const [showResult, setShowResult] = useState(false)
+  const [placementState, setPlacementState] = useState<PlacementState>('answering')
   const [lastResult, setLastResult] = useState<{ correct: boolean; answer: number; timeSpent: number } | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     window.location.href = '/'
   }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [timeoutId])
 
   useEffect(() => {
     if (sessionStarted && !sessionState) {
@@ -39,8 +51,9 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     }
   }, [sessionStarted, sessionState, startPlacementTest, email, gradeLevel])
 
+  // Load current problem when advancing to a new question
   useEffect(() => {
-    if (sessionState && sessionState.problemQueue.length > 0 && !showResult) {
+    if (sessionState && sessionState.problemQueue.length > 0 && placementState === 'answering') {
       const problem = getCurrentProblem()
       if (problem && problem !== currentProblem) {
         setCurrentProblem(problem)
@@ -49,68 +62,84 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
         setUserAnswer('')
       }
     }
-  }, [sessionState?.currentProblemIndex, showResult])
+  }, [sessionState?.currentProblemIndex, placementState])
 
-  // Separate effect to handle auto-advance after showing result
+  // State machine: Handle auto-advance after showing result
   useEffect(() => {
-    if (showResult && sessionState && !isSubmitting) {
+    if (placementState === 'showing_result' && sessionState) {
       console.log('Setting up auto-advance timer...')
 
-      const timer = setTimeout(async () => {
+      const timer = setTimeout(() => {
         console.log('Auto-advance triggered')
-
-        try {
-          const nextProblem = getNextProblem()
-          if (nextProblem) {
-            console.log('Advancing to next problem')
-            // There are more problems - advance to next and reset result state
-            advanceToNextProblem()
-            setShowResult(false)
-            setIsSubmitting(false)
-          } else {
-            console.log('No more problems, completing test')
-            // Test completed
-            await completeSession()
-            onComplete({
-              totalProblems: sessionState.problemQueue.length,
-              correctAnswers: sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length,
-              accuracy: Math.round((sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length / sessionState.problemQueue.length) * 100)
-            })
-            // Notify parent to refresh journey state
-            onJourneyStateChange?.()
-          }
-        } catch (error) {
-          console.error('Error during auto-advance:', error)
-          // Reset state so user can retry if needed
-          setIsSubmitting(false)
-        }
+        setPlacementState('advancing')
       }, 2000)
+
+      setTimeoutId(timer)
 
       return () => {
         console.log('Cleaning up auto-advance timer')
         clearTimeout(timer)
       }
     }
-  }, [showResult, sessionState, isSubmitting, getNextProblem, advanceToNextProblem, completeSession, onComplete, onJourneyStateChange])
+  }, [placementState, sessionState])
 
+  // State machine: Handle advancement logic
   useEffect(() => {
-    if (startTime && !showResult) {
+    if (placementState === 'advancing' && sessionState) {
+      const nextProblem = getNextProblem()
+      if (nextProblem) {
+        console.log('Advancing to next problem')
+        advanceToNextProblem()
+        setPlacementState('answering')
+      } else {
+        console.log('No more problems, completing test')
+        setPlacementState('completing')
+      }
+    }
+  }, [placementState, sessionState, getNextProblem, advanceToNextProblem])
+
+  // State machine: Handle test completion
+  useEffect(() => {
+    if (placementState === 'completing' && sessionState) {
+      const completeTest = async () => {
+        try {
+          await completeSession()
+          onComplete({
+            totalProblems: sessionState.problemQueue.length,
+            correctAnswers: sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length,
+            accuracy: Math.round((sessionState.gridUpdates.filter(g => g.lastAttemptCorrect).length / sessionState.problemQueue.length) * 100)
+          })
+          // Notify parent to refresh journey state
+          onJourneyStateChange?.()
+        } catch (error) {
+          console.error('Error completing test:', error)
+          // Reset to answering state on error
+          setPlacementState('answering')
+        }
+      }
+      completeTest()
+    }
+  }, [placementState, sessionState, completeSession, onComplete, onJourneyStateChange])
+
+  // Timer: Update time spent while answering
+  useEffect(() => {
+    if (startTime && placementState === 'answering') {
       const interval = setInterval(() => {
         setTimeSpent(Math.floor((Date.now() - startTime) / 1000))
       }, 1000)
       return () => clearInterval(interval)
     }
-  }, [startTime, showResult])
+  }, [startTime, placementState])
 
   const handleSubmit = async () => {
-    // Prevent multiple submissions
-    if (!currentProblem || !userAnswer || isSubmitting || showResult) return
+    // Prevent multiple submissions - only allow when in answering state
+    if (placementState !== 'answering' || !currentProblem || !userAnswer) return
 
     const answer = parseInt(userAnswer)
     if (isNaN(answer)) return
 
     try {
-      setIsSubmitting(true)
+      setPlacementState('submitting')
 
       // Calculate the exact time spent for this question
       const currentTimeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timeSpent
@@ -122,12 +151,12 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
       console.log('Answer submitted successfully:', result)
 
       setLastResult({ correct: result.correct, answer: currentProblem.answer, timeSpent: currentTimeSpent })
-      setShowResult(true)
       setTimeSpent(currentTimeSpent) // Preserve for display
+      setPlacementState('showing_result')
     } catch (error) {
       console.error('Failed to submit answer:', error)
-      // Reset submission state on error so user can try again
-      setIsSubmitting(false)
+      // Reset to answering state on error so user can try again
+      setPlacementState('answering')
     }
   }
 
@@ -224,7 +253,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {showResult ? (
+              {placementState === 'showing_result' || placementState === 'advancing' ? (
                 <div className="text-center space-y-6">
                   <div className="flex items-center justify-center gap-3">
                     {lastResult?.correct ? (
@@ -262,7 +291,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
                 value={userAnswer}
                 onChange={handleAnswerChange}
                 onSubmit={handleSubmit}
-                disabled={showResult || isSubmitting}
+                disabled={placementState !== 'answering'}
                 maxLength={3}
               />
             </CardContent>
