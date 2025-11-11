@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/useAuth'
+import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
 import { PlacementTest } from '@/components/student/PlacementTest'
 import { PracticeGrid } from '@/components/student/PracticeGrid'
@@ -15,19 +15,19 @@ interface PracticePageProps {
 }
 
 export function PracticePage({ onBack, autoStart = false, desiredMode }: PracticePageProps) {
-  const { user, signOut } = useAuth()
+  const { identity, clearIdentity } = useStudentIdentity()
   const { refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
   const [mode, setMode] = useState<'placement' | 'practice' | 'results' | null>(null)
   const [placementResults, setPlacementResults] = useState<any>(null)
 
   const handleLogout = () => {
-    signOut()
+    clearIdentity()
     window.location.href = '/'
   }
 
   // Deterministic mode resolution based on desiredMode and journey state
   useEffect(() => {
-    if (autoStart && user?.email && !mode && !journeyLoading) {
+    if (autoStart && identity?.email && !mode && !journeyLoading) {
       if (desiredMode === 'practice') {
         if (canStartPractice) {
           setMode('practice')
@@ -45,7 +45,7 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
         }
       }
     }
-  }, [autoStart, user?.email, mode, needsPlacement, canStartPractice, desiredMode, journeyLoading])
+  }, [autoStart, identity?.email, mode, needsPlacement, canStartPractice, desiredMode, journeyLoading])
 
   const handlePlacementComplete = async (results: any) => {
     setPlacementResults(results)
@@ -67,7 +67,7 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
     setMode('placement')
   }
 
-  if (!user?.email) {
+  if (!identity?.email) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
@@ -129,8 +129,8 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
   if (mode === 'placement') {
     return (
       <PlacementTest
-        email={user.email}
-        gradeLevel={user.user_metadata?.grade_level || '3'}
+        email={identity.email}
+        gradeLevel={identity.metadata?.grade_level || '3'}
         onComplete={handlePlacementComplete}
         onJourneyStateChange={() => {
           // Refresh the parent's journey state when placement completes
@@ -143,8 +143,8 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
   if (mode === 'practice') {
     return (
       <PracticeGrid
-        email={user.email}
-        gradeLevel={user.user_metadata?.grade_level || '3'}
+        email={identity.email}
+        gradeLevel={identity.metadata?.grade_level || '3'}
         onComplete={handlePracticeComplete}
       />
     )

@@ -9,7 +9,7 @@ import { ProgressGrid } from '@/components/student/ProgressGrid'
 import { Loader2 } from 'lucide-react'
 
 function StudentRoutes() {
-  const { identity, loading } = useStudentIdentity()
+  const { identity, loading, clearIdentity } = useStudentIdentity()
   const navigate = useNavigate()
   const location = useLocation()
   const [desiredMode, setDesiredMode] = useState<'practice' | 'placement' | undefined>(undefined)
@@ -30,7 +30,6 @@ function StudentRoutes() {
   }
 
   const handleLogout = () => {
-    const { clearIdentity } = useStudentIdentity()
     clearIdentity()
     window.location.reload()
   }

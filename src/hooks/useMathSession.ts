@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useAuth } from '@/hooks/useAuth'
+import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { createApiClient } from '@/lib/api-client'
 import { supabase } from '@/integrations/supabase/client'
 import { getPlacementQuestionCount, PLACEMENT_CONFIG, classifyTime } from '@/lib/config'
@@ -10,7 +10,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const apiClient = createApiClient(supabaseUrl, supabaseKey)
 
 export function useMathSession() {
-  const { user } = useAuth()
+  const { identity } = useStudentIdentity()
   const [sessionState, setSessionState] = useState<MathSessionState | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -78,10 +78,10 @@ export function useMathSession() {
   // Check for active sessions on mount
   const checkForActiveSessions = useCallback(async () => {
     try {
-      if (!user) return null
+      if (!identity) return null
 
       const { data: activeSessions, error } = await supabase
-        .rpc('get_active_sessions_for_student', { student_uuid: user.id })
+        .rpc('get_active_sessions_for_student', { student_uuid: identity.id })
 
       if (error) throw error
       return activeSessions
@@ -89,7 +89,7 @@ export function useMathSession() {
       console.error('Failed to check for active sessions:', err)
       return null
     }
-  }, [user])
+  }, [identity])
 
   const startPlacementTest = useCallback(async (email: string, gradeLevel: string) => {
     setLoading(true)
@@ -251,14 +251,14 @@ export function useMathSession() {
 
     const isCorrect = answer === currentProblem.answer
 
-    // Get current user for student ID
-    if (!user) throw new Error('User not authenticated')
+    // Get current identity for student ID
+    if (!identity) throw new Error('User not authenticated')
 
     // Record detailed question attempt
     try {
       await apiClient.recordQuestionAttempt(
         sessionState.sessionId,
-        user.id,
+        identity.id,
         currentProblem.multiplicand,
         currentProblem.multiplier,
         answer,
@@ -429,10 +429,10 @@ export function useMathSession() {
 
       // Only update math grid progress for practice sessions, NOT placement tests
       if (sessionState.sessionType === 'practice' && sessionState.gridUpdates.length > 0) {
-        // Get current user for correct studentId
-        if (user) {
+        // Get current identity for correct studentId
+        if (identity) {
           await apiClient.updateMathGrid(
-            user.id, // Use correct studentId, not sessionId
+            identity.id, // Use correct studentId, not sessionId
             sessionState.gridUpdates
           )
         }
