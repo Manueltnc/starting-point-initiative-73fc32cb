@@ -19,19 +19,42 @@ export function useStudentIdentity() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Read from localStorage on mount
-    const storedId = localStorage.getItem(USER_ID_STORAGE_KEY)
-    const storedEmail = localStorage.getItem(USER_EMAIL_STORAGE_KEY)
-    const storedMetadata = localStorage.getItem(USER_METADATA_STORAGE_KEY)
+    const readFromStorage = () => {
+      const storedId = localStorage.getItem(USER_ID_STORAGE_KEY)
+      const storedEmail = localStorage.getItem(USER_EMAIL_STORAGE_KEY)
+      const storedMetadata = localStorage.getItem(USER_METADATA_STORAGE_KEY)
 
-    if (storedId && storedEmail) {
-      setIdentityState({
-        id: storedId,
-        email: storedEmail,
-        metadata: storedMetadata ? JSON.parse(storedMetadata) : {}
-      })
+      if (storedId && storedEmail) {
+        setIdentityState({
+          id: storedId,
+          email: storedEmail,
+          metadata: storedMetadata ? JSON.parse(storedMetadata) : {}
+        })
+      } else {
+        setIdentityState(null)
+      }
     }
+
+    // Initial read
+    readFromStorage()
     setLoading(false)
+
+    const handleStorage = (e: StorageEvent) => {
+      if (!e.key || [USER_ID_STORAGE_KEY, USER_EMAIL_STORAGE_KEY, USER_METADATA_STORAGE_KEY].includes(e.key)) {
+        readFromStorage()
+      }
+    }
+
+    const ID_CHANGED_EVENT = 'student-identity-changed'
+    const handleCustom = () => readFromStorage()
+
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener(ID_CHANGED_EVENT, handleCustom)
+
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener(ID_CHANGED_EVENT, handleCustom)
+    }
   }, [])
 
   const setIdentity = async ({
@@ -78,6 +101,9 @@ export function useStudentIdentity() {
         metadata
       })
 
+      // Notify other hook instances
+      window.dispatchEvent(new Event('student-identity-changed'))
+
       return { error: null }
     } catch (error) {
       return { error }
@@ -89,6 +115,7 @@ export function useStudentIdentity() {
     localStorage.removeItem(USER_EMAIL_STORAGE_KEY)
     localStorage.removeItem(USER_METADATA_STORAGE_KEY)
     setIdentityState(null)
+    window.dispatchEvent(new Event('student-identity-changed'))
   }
 
   return {

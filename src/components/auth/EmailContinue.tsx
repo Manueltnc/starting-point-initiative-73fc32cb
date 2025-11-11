@@ -22,7 +22,6 @@ export function EmailContinue({ onSuccess }: EmailContinueProps) {
     try {
       if (!email || !email.includes('@')) {
         setError('Please enter a valid email address')
-        setLoading(false)
         return
       }
 
@@ -30,6 +29,7 @@ export function EmailContinue({ onSuccess }: EmailContinueProps) {
       await onSuccess(email)
     } catch (err) {
       setError('An unexpected error occurred')
+    } finally {
       setLoading(false)
     }
   }
