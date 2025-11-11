@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { LoginPage } from '@/pages/Login'
 import { StudentHome } from '@/pages/StudentHome'
 import { PracticePage } from '@/pages/Practice'
@@ -9,7 +9,7 @@ import { ProgressGrid } from '@/components/student/ProgressGrid'
 import { Loader2 } from 'lucide-react'
 
 function StudentRoutes() {
-  const { user, loading, signOut } = useAuth()
+  const { identity, loading } = useStudentIdentity()
   const navigate = useNavigate()
   const location = useLocation()
   const [desiredMode, setDesiredMode] = useState<'practice' | 'placement' | undefined>(undefined)
@@ -25,12 +25,13 @@ function StudentRoutes() {
     )
   }
 
-  if (!user) {
+  if (!identity) {
     return <LoginPage onLogin={() => navigate('/')} />
   }
 
   const handleLogout = () => {
-    signOut()
+    const { clearIdentity } = useStudentIdentity()
+    clearIdentity()
     window.location.reload()
   }
 
@@ -63,8 +64,8 @@ function StudentRoutes() {
             </button>
           </div>
           <ProgressGrid
-            email={user.email || ''}
-            gradeLevel={user.user_metadata?.grade_level || '3'}
+            email={identity.email}
+            gradeLevel={identity.metadata?.grade_level || '3'}
           />
         </div>
       </div>

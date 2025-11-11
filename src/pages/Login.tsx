@@ -1,11 +1,29 @@
-import { LoginForm } from '@/components/auth/LoginForm'
+import { EmailContinue } from '@/components/auth/EmailContinue'
 import { Calculator, BookOpen } from 'lucide-react'
+import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 
 interface LoginPageProps {
   onLogin: () => void
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
+  const { setIdentity } = useStudentIdentity()
+
+  const handleEmailSubmit = async () => {
+    // Extract email from the form before submitting
+    const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]')
+    const email = emailInput?.value || ''
+    
+    if (email) {
+      await setIdentity({
+        email,
+        display_name: email.split('@')[0],
+        grade_level: '3'
+      })
+      onLogin()
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/20 via-secondary/20 to-primary/30 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -27,8 +45,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </div>
         </div>
 
-        {/* Auth Form */}
-        <LoginForm onSuccess={onLogin} />
+        {/* Email Form */}
+        <EmailContinue onSuccess={handleEmailSubmit} />
 
         {/* Footer */}
         <div className="text-center mt-8 text-xs text-muted-foreground">

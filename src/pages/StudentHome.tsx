@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { useAuth } from '@/hooks/useAuth'
+import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
 import { Calculator, Target, Trophy, BarChart3, Play, BookOpen, LogOut, Star, Sparkles, Clock, Award } from 'lucide-react'
@@ -16,19 +16,19 @@ interface StudentHomeProps {
 }
 
 export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress, onLogout }: StudentHomeProps) {
-  const { user } = useAuth()
+  const { identity } = useStudentIdentity()
   const { progress, loading: progressLoading, fetchProgress, getMasteryPercentage, getGuardrailMasteryPercentage } = useGridProgress()
   const { loading: journeyLoading, shouldShowPlacement, canStartPractice } = useStudentJourney()
   const [showProgressModal, setShowProgressModal] = useState(false)
 
   useEffect(() => {
-    if (user?.email) {
+    if (identity?.email) {
       // Fetch progress (only if practice is ready)
       if (canStartPractice) {
-        fetchProgress(user.email, user.user_metadata?.grade_level || '3')
+        fetchProgress(identity.email, identity.metadata?.grade_level || '3')
       }
     }
-  }, [user, fetchProgress, canStartPractice])
+  }, [identity, fetchProgress, canStartPractice])
 
   if (journeyLoading || progressLoading) {
     return (
@@ -41,8 +41,8 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
     )
   }
 
-  const displayName = user?.user_metadata?.display_name || user?.email || 'Student'
-  const gradeLevel = user?.user_metadata?.grade_level || '3'
+  const displayName = identity?.metadata?.display_name || identity?.email || 'Student'
+  const gradeLevel = identity?.metadata?.grade_level || '3'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
@@ -353,10 +353,10 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
         )}
 
         {/* Progress Grid Modal */}
-        {user?.email && (
+        {identity?.email && (
           <ProgressGridModal
-            email={user.email}
-            gradeLevel={user.user_metadata?.grade_level || '3'}
+            email={identity.email}
+            gradeLevel={identity.metadata?.grade_level || '3'}
             isOpen={showProgressModal}
             onClose={() => setShowProgressModal(false)}
           />

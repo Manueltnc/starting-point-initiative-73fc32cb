@@ -123,7 +123,6 @@ export type Database = {
           audio_urls: Json | null
           content_type: string
           created_at: string | null
-          difficulty: Database["public"]["Enums"]["difficulty_level"] | null
           grade_level: string | null
           id: string
           is_active: boolean | null
@@ -136,7 +135,6 @@ export type Database = {
           audio_urls?: Json | null
           content_type: string
           created_at?: string | null
-          difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
           grade_level?: string | null
           id?: string
           is_active?: boolean | null
@@ -149,13 +147,263 @@ export type Database = {
           audio_urls?: Json | null
           content_type?: string
           created_at?: string | null
-          difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
           grade_level?: string | null
           id?: string
           is_active?: boolean | null
           metadata?: Json | null
           subtitle?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      countries_app_attempts: {
+        Row: {
+          attempted_at: string | null
+          created_at: string | null
+          id: number
+          is_correct: boolean | null
+          session_country_id: string | null
+          student_answer: string | null
+          time_taken_seconds: number | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          created_at?: string | null
+          id?: number
+          is_correct?: boolean | null
+          session_country_id?: string | null
+          student_answer?: string | null
+          time_taken_seconds?: number | null
+        }
+        Update: {
+          attempted_at?: string | null
+          created_at?: string | null
+          id?: number
+          is_correct?: boolean | null
+          session_country_id?: string | null
+          student_answer?: string | null
+          time_taken_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "countries_app_attempts_session_country_id_fkey"
+            columns: ["session_country_id"]
+            isOneToOne: false
+            referencedRelation: "countries_app_country_states"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      countries_app_country_states: {
+        Row: {
+          attempts_count: number | null
+          country_id: string | null
+          created_at: string | null
+          id: string
+          is_completed: boolean | null
+          is_correct:
+            | Database["public"]["Enums"]["countries_attempt_status"]
+            | null
+          last_attempt_at: string | null
+          order_index: number | null
+          session_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attempts_count?: number | null
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          is_correct?:
+            | Database["public"]["Enums"]["countries_attempt_status"]
+            | null
+          last_attempt_at?: string | null
+          order_index?: number | null
+          session_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attempts_count?: number | null
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          is_correct?:
+            | Database["public"]["Enums"]["countries_attempt_status"]
+            | null
+          last_attempt_at?: string | null
+          order_index?: number | null
+          session_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "countries_app_country_states_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries_app_main"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "countries_app_country_states_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "countries_app_learning_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      countries_app_learning_sessions: {
+        Row: {
+          completed_at: string | null
+          completed_country: number | null
+          correct_answers: number | null
+          created_at: string | null
+          id: string
+          session_name: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["countries_session_status"] | null
+          student_id: string | null
+          total_countries: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_country?: number | null
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string
+          session_name?: string | null
+          started_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["countries_session_status"]
+            | null
+          student_id?: string | null
+          total_countries?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_country?: number | null
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string
+          session_name?: string | null
+          started_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["countries_session_status"]
+            | null
+          student_id?: string | null
+          total_countries?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "countries_app_learning_sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "countries_app_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      countries_app_main: {
+        Row: {
+          audio_url: string | null
+          calculation: string | null
+          capital: string | null
+          country_code: string | null
+          country_name: string
+          country_url: string | null
+          created_at: string | null
+          difficulty: string | null
+          fun_fact: string | null
+          grade_level: string | null
+          id: string
+          is_active: boolean | null
+          question_for_audio: string | null
+          question_sentence: string | null
+          region: string | null
+          seconds_gap: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          calculation?: string | null
+          capital?: string | null
+          country_code?: string | null
+          country_name: string
+          country_url?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          fun_fact?: string | null
+          grade_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          question_for_audio?: string | null
+          question_sentence?: string | null
+          region?: string | null
+          seconds_gap?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          calculation?: string | null
+          capital?: string | null
+          country_code?: string | null
+          country_name?: string
+          country_url?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          fun_fact?: string | null
+          grade_level?: string | null
+          id?: string
+          is_active?: boolean | null
+          question_for_audio?: string | null
+          question_sentence?: string | null
+          region?: string | null
+          seconds_gap?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      countries_app_students: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          first_name: string | null
+          grade: string | null
+          id: string
+          last_name: string | null
+          updated_at: string | null
+          username: string | null
+          work: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          first_name?: string | null
+          grade?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string | null
+          username?: string | null
+          work?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          first_name?: string | null
+          grade?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string | null
+          username?: string | null
+          work?: string | null
         }
         Relationships: []
       }
@@ -1162,6 +1410,253 @@ export type Database = {
         }
         Relationships: []
       }
+      states_app_attempts: {
+        Row: {
+          attempted_at: string | null
+          id: string
+          is_correct: boolean | null
+          session_state_id: string
+          student_answer: string | null
+          time_taken_seconds: number | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          id: string
+          is_correct?: boolean | null
+          session_state_id: string
+          student_answer?: string | null
+          time_taken_seconds?: number | null
+        }
+        Update: {
+          attempted_at?: string | null
+          id?: string
+          is_correct?: boolean | null
+          session_state_id?: string
+          student_answer?: string | null
+          time_taken_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "states_app_attempts_session_state_id_fkey"
+            columns: ["session_state_id"]
+            isOneToOne: false
+            referencedRelation: "states_app_session_states"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      states_app_learning_sessions: {
+        Row: {
+          completed_at: string | null
+          completed_states: number | null
+          correct_answers: number | null
+          id: string
+          session_name: string
+          session_states: string[] | null
+          started_at: string | null
+          status: string | null
+          student_id: string
+          total_states: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_states?: number | null
+          correct_answers?: number | null
+          id: string
+          session_name: string
+          session_states?: string[] | null
+          started_at?: string | null
+          status?: string | null
+          student_id: string
+          total_states?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_states?: number | null
+          correct_answers?: number | null
+          id?: string
+          session_name?: string
+          session_states?: string[] | null
+          started_at?: string | null
+          status?: string | null
+          student_id?: string
+          total_states?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "states_app_learning_sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "states_app_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      states_app_main: {
+        Row: {
+          audio_url: string | null
+          capitol: string
+          difficulty: Database["public"]["Enums"]["difficulty_level"] | null
+          fetch_audio: string | null
+          fun_fact: string | null
+          grade_level: Database["public"]["Enums"]["grade_type"] | null
+          id: string
+          is_active: boolean | null
+          question_for_audio: string | null
+          question_sentence: string | null
+          region: string | null
+          seconds_gap: number | null
+          session_states: string[] | null
+          state_code: string
+          state_name: string
+          state_url: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          capitol: string
+          difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          fetch_audio?: string | null
+          fun_fact?: string | null
+          grade_level?: Database["public"]["Enums"]["grade_type"] | null
+          id: string
+          is_active?: boolean | null
+          question_for_audio?: string | null
+          question_sentence?: string | null
+          region?: string | null
+          seconds_gap?: number | null
+          session_states?: string[] | null
+          state_code: string
+          state_name: string
+          state_url?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          capitol?: string
+          difficulty?: Database["public"]["Enums"]["difficulty_level"] | null
+          fetch_audio?: string | null
+          fun_fact?: string | null
+          grade_level?: Database["public"]["Enums"]["grade_type"] | null
+          id?: string
+          is_active?: boolean | null
+          question_for_audio?: string | null
+          question_sentence?: string | null
+          region?: string | null
+          seconds_gap?: number | null
+          session_states?: string[] | null
+          state_code?: string
+          state_name?: string
+          state_url?: string | null
+        }
+        Relationships: []
+      }
+      states_app_session_states: {
+        Row: {
+          attempts: string[] | null
+          attempts_count: number | null
+          audio_url: string | null
+          difficulty: string | null
+          fetch_audio: string | null
+          id: string
+          is_active: boolean | null
+          is_completed: boolean | null
+          is_correct: Database["public"]["Enums"]["attempt_status"] | null
+          last_attempt_at: string | null
+          order_index: number | null
+          region: string | null
+          seconds_gap: number | null
+          session_id: string
+          state_id: string
+        }
+        Insert: {
+          attempts?: string[] | null
+          attempts_count?: number | null
+          audio_url?: string | null
+          difficulty?: string | null
+          fetch_audio?: string | null
+          id: string
+          is_active?: boolean | null
+          is_completed?: boolean | null
+          is_correct?: Database["public"]["Enums"]["attempt_status"] | null
+          last_attempt_at?: string | null
+          order_index?: number | null
+          region?: string | null
+          seconds_gap?: number | null
+          session_id: string
+          state_id: string
+        }
+        Update: {
+          attempts?: string[] | null
+          attempts_count?: number | null
+          audio_url?: string | null
+          difficulty?: string | null
+          fetch_audio?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_completed?: boolean | null
+          is_correct?: Database["public"]["Enums"]["attempt_status"] | null
+          last_attempt_at?: string | null
+          order_index?: number | null
+          region?: string | null
+          seconds_gap?: number | null
+          session_id?: string
+          state_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "states_app_session_states_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "states_app_learning_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "states_app_session_states_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "states_app_main"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      states_app_students: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          first_name: string
+          grade: string | null
+          id: string
+          last_name: string
+          learning_sessions: string[] | null
+          username: string | null
+          work: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          first_name: string
+          grade?: string | null
+          id: string
+          last_name: string
+          learning_sessions?: string[] | null
+          username?: string | null
+          work?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          first_name?: string
+          grade?: string | null
+          id?: string
+          last_name?: string
+          learning_sessions?: string[] | null
+          username?: string | null
+          work?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null
@@ -1209,6 +1704,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_countries_student: {
+        Args: { p_display_name: string; p_email: string; p_grade: string }
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          first_name: string
+          grade: string
+          id: string
+          last_name: string
+          updated_at: string
+          username: string
+          work: string
+        }[]
+      }
       create_test_user:
         | {
             Args: {
@@ -1280,7 +1790,11 @@ export type Database = {
     }
     Enums: {
       app_type: "spelling" | "geography" | "math"
-      difficulty_level: "easy" | "medium" | "hard"
+      attempt_status: "Not Attempted" | "Correct" | "Incorrect"
+      countries_attempt_status: "Not Attempted" | "Correct" | "Incorrect"
+      countries_session_status: "active" | "completed" | "paused"
+      difficulty_level: "Easy" | "Medium" | "Hard"
+      grade_type: "K-8" | "K-9" | "K-10" | "K-11" | "K-12"
       guardrails_level: "none" | "1-5" | "1-9" | "1-12"
       session_status: "active" | "completed" | "abandoned"
       spelling_app_day: "Monday" | "Tuesday" | "Wednesday" | "Thursday"
@@ -1416,7 +1930,11 @@ export const Constants = {
   public: {
     Enums: {
       app_type: ["spelling", "geography", "math"],
-      difficulty_level: ["easy", "medium", "hard"],
+      attempt_status: ["Not Attempted", "Correct", "Incorrect"],
+      countries_attempt_status: ["Not Attempted", "Correct", "Incorrect"],
+      countries_session_status: ["active", "completed", "paused"],
+      difficulty_level: ["Easy", "Medium", "Hard"],
+      grade_type: ["K-8", "K-9", "K-10", "K-11", "K-12"],
       guardrails_level: ["none", "1-5", "1-9", "1-12"],
       session_status: ["active", "completed", "abandoned"],
       spelling_app_day: ["Monday", "Tuesday", "Wednesday", "Thursday"],

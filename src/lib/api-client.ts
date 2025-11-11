@@ -46,10 +46,12 @@ export class UnifiedApiClient {
 
   async createSession(
     appType: string,
-    _email: string,
-    _gradeLevel: string,
+    email: string,
+    gradeLevel: string,
     metadata?: Record<string, any>
   ): Promise<{ sessionId: string }> {
+    void email // Mark as used for TS
+    
     const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -57,7 +59,7 @@ export class UnifiedApiClient {
       _id: user.id,
       _email: user.email,
       _display_name: user.metadata?.display_name || user.email.split('@')[0],
-      _grade_level: user.metadata?.grade_level || _gradeLevel
+      _grade_level: user.metadata?.grade_level || gradeLevel
     })
     if (ensureErr) throw ensureErr
 
@@ -142,9 +144,13 @@ export class UnifiedApiClient {
   // MATH PROGRESS
   // ============================================
 
-  async getMathProgress(_email: string, _gradeLevel: string): Promise<MathProgress> {
+  async getMathProgress(email: string, gradeLevel: string): Promise<MathProgress> {
     const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
+    
+    // Mark params as used for TS
+    void email
+    void gradeLevel
 
     const { data, error } = await sb
       .from('multiplications_app_math_grid_progress')
@@ -416,11 +422,17 @@ export class UnifiedApiClient {
     return data || []
   }
 
-  async getCohortMetrics(_options?: {
+  async getCohortMetrics(options?: {
     startDate?: string
     endDate?: string
     gradeLevel?: string
   }): Promise<CohortMetrics> {
+    // Mark options as used for TS
+    const { startDate, endDate, gradeLevel } = options ?? {}
+    void startDate
+    void endDate
+    void gradeLevel
+    
     // This is a simplified version - in production you'd want to use database functions
     const { data: metrics, error } = await sb
       .from('multiplications_app_daily_student_metrics')
@@ -559,7 +571,9 @@ export class UnifiedApiClient {
 }
 
 // Factory function to create API client
-export function createApiClient(_supabaseUrl?: string, _supabaseKey?: string): UnifiedApiClient {
+export function createApiClient(supabaseUrl?: string, supabaseKey?: string): UnifiedApiClient {
+  void supabaseUrl // Mark as used for TS
+  void supabaseKey // Mark as used for TS
   return new UnifiedApiClient()
 }
 
