@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react'
 
 interface EmailContinueProps {
-  onSuccess: () => void
+  onSuccess: (email: string) => Promise<void>
 }
 
 export function EmailContinue({ onSuccess }: EmailContinueProps) {
@@ -26,11 +26,10 @@ export function EmailContinue({ onSuccess }: EmailContinueProps) {
         return
       }
 
-      // Email is valid, proceed
-      onSuccess()
+      // Pass email to parent and wait for completion
+      await onSuccess(email)
     } catch (err) {
       setError('An unexpected error occurred')
-    } finally {
       setLoading(false)
     }
   }
@@ -55,6 +54,7 @@ export function EmailContinue({ onSuccess }: EmailContinueProps) {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
+              autoFocus
             />
           </div>
           {error && (
@@ -64,7 +64,7 @@ export function EmailContinue({ onSuccess }: EmailContinueProps) {
           )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue
+            {loading ? 'Continuing...' : 'Continue'}
           </Button>
         </form>
       </CardContent>

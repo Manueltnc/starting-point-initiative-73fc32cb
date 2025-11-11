@@ -9,18 +9,20 @@ interface LoginPageProps {
 export function LoginPage({ onLogin }: LoginPageProps) {
   const { setIdentity } = useStudentIdentity()
 
-  const handleEmailSubmit = async () => {
-    // Extract email from the form before submitting
-    const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]')
-    const email = emailInput?.value || ''
-    
-    if (email) {
+  const handleEmailSubmit = async (email: string) => {
+    try {
+      // Set identity and wait for it to complete
       await setIdentity({
         email,
         display_name: email.split('@')[0],
         grade_level: '3'
       })
+      
+      // Only navigate after identity is successfully set
       onLogin()
+    } catch (error) {
+      console.error('Failed to set identity:', error)
+      throw error // Re-throw to let EmailContinue handle the error display
     }
   }
 
