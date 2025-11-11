@@ -135,27 +135,8 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     }
   }, [placementState, sessionState, completeSession, onComplete, onJourneyStateChange])
 
-  // Timer: Update time spent while answering and auto-submit at 3 minutes
-  useEffect(() => {
-    if (startTime && placementState === 'answering' && currentProblem) {
-      const interval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000)
-        setTimeSpent(elapsed)
-        
-        // Auto-submit if 3 minutes (180 seconds) reached
-        if (elapsed >= MAX_TIME_PER_QUESTION_SECONDS) {
-          // Auto-submit with current answer (or 0 if no answer) - will be marked incorrect if wrong
-          const answerToSubmit = userAnswer ? parseInt(userAnswer) : 0
-          if (!isNaN(answerToSubmit) && placementState === 'answering') {
-            handleSubmit(answerToSubmit)
-          }
-        }
-      }, 1000)
-      return () => clearInterval(interval)
-    }
-  }, [startTime, placementState, currentProblem, userAnswer])
-
-  const handleSubmit = async (forceAnswer?: number) => {
+  // FIX: Add useCallback wrapper
+  const handleSubmit = useCallback(async (forceAnswer?: number) => {
     // Prevent multiple submissions - only allow when in answering state
     if (placementState !== 'answering' || !currentProblem) return
 
