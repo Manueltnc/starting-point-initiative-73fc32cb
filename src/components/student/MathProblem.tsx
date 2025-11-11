@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { EquationProblem } from '@/components/ui/EquationDisplay'
 import { MAX_TIME_PER_QUESTION_SECONDS } from '@/lib/config'
@@ -36,25 +36,6 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
     setLastResult(null)
     setSubmitting(false)
   }, [problem])
-
-  useEffect(() => {
-    if (startTime && !showResult && !submitting) {
-      const interval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000)
-        setTimeSpent(elapsed)
-        
-        // Auto-submit if 3 minutes (180 seconds) reached
-        if (elapsed >= MAX_TIME_PER_QUESTION_SECONDS) {
-          // Auto-submit with current answer (or 0 if no answer) - will be marked incorrect if wrong
-          const answerToSubmit = userAnswer ? parseInt(userAnswer) : 0
-          if (!isNaN(answerToSubmit) && !submitting && !showResult) {
-            handleSubmit()
-          }
-        }
-      }, 1000)
-      return () => clearInterval(interval)
-    }
-  }, [startTime, showResult, userAnswer, submitting, handleSubmit])
 
   // Cleanup timer on component unmount
   useEffect(() => {
@@ -108,6 +89,26 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
       setSubmitting(false)
     }
   }, [userAnswer, submitting, showResult, timeSpent, problem, onAnswer, isLastProblem, onComplete])
+
+  // Timer: Update time spent while answering and auto-submit at 3 minutes
+  useEffect(() => {
+    if (startTime && !showResult && !submitting) {
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000)
+        setTimeSpent(elapsed)
+        
+        // Auto-submit if 3 minutes (180 seconds) reached
+        if (elapsed >= MAX_TIME_PER_QUESTION_SECONDS) {
+          // Auto-submit with current answer (or 0 if no answer) - will be marked incorrect if wrong
+          const answerToSubmit = userAnswer ? parseInt(userAnswer) : 0
+          if (!isNaN(answerToSubmit) && !submitting && !showResult) {
+            handleSubmit()
+          }
+        }
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [startTime, showResult, userAnswer, submitting, handleSubmit])
 
   const handleAnswerChange = (value: string) => {
     setUserAnswer(value)
