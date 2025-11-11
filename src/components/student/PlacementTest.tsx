@@ -4,9 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { AppHeader } from '@/components/ui/AppHeader'
 import { useMathSession } from '@/hooks/useMathSession'
-import { formatTime } from '@/lib/utils'
 import { supabase } from '@/integrations/supabase/client'
-import { Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { CheckCircle2, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import type { MathProblem } from '@/types'
 
@@ -242,12 +241,6 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
           {/* Problem Display */}
           <Card className="backdrop-blur-sm bg-white/80 border-white/20">
             <CardHeader className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Clock className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  {formatTime(timeSpent)}
-                </span>
-              </div>
               <CardTitle className="text-6xl font-bold text-primary mb-8">
                 {currentProblem.multiplicand} × {currentProblem.multiplier} = ?
               </CardTitle>
@@ -270,9 +263,6 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
                       The correct answer is <span className="font-bold text-primary">{lastResult?.answer}</span>
                     </p>
                   )}
-                  <p className="text-lg text-muted-foreground">
-                    Time spent: {formatTime(lastResult?.timeSpent || timeSpent)}
-                  </p>
                 </div>
               ) : (
                 <div className="text-center">

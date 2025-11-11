@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { EquationProblem } from '@/components/ui/EquationDisplay'
-import { formatTime } from '@/lib/utils'
-import { Clock, CheckCircle, XCircle } from 'lucide-react'
+import { CheckCircle, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import type { MathProblem } from '@/types'
 
@@ -104,12 +103,6 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
       {/* Problem Display */}
       <Card className="backdrop-blur-sm bg-white/80 border-white/20">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Clock className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">
-              {formatTime(timeSpent)}
-            </span>
-          </div>
           <div className="flex items-center justify-center mb-8">
             <EquationProblem
               multiplicand={problem.multiplicand}
@@ -138,9 +131,6 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
                   The correct answer is <span className="font-bold text-primary">{lastResult?.answer}</span>
                 </p>
               )}
-              <p className="text-lg text-muted-foreground">
-                Time spent: {formatTime(timeSpent)}
-              </p>
               {isLastProblem && (
                 <p className="text-lg text-muted-foreground">
                   Great job! Session completed.
