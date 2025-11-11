@@ -121,7 +121,8 @@ export class UnifiedApiClient {
     correctAnswer: number,
     isCorrect: boolean,
     timeSpent: number,
-    attemptNumber: number
+    attemptNumber: number,
+    timeClassification: 'fast' | 'medium' | 'slow'
   ): Promise<void> {
     const { error } = await sb
       .from('multiplications_app_question_attempts')
@@ -134,7 +135,8 @@ export class UnifiedApiClient {
         correct_answer: correctAnswer,
         is_correct: isCorrect,
         time_spent_seconds: timeSpent,
-        attempt_number: attemptNumber
+        attempt_number: attemptNumber,
+        time_classification: timeClassification
       })
 
     if (error) throw error

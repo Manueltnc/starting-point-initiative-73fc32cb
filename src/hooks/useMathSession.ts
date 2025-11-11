@@ -254,6 +254,7 @@ export function useMathSession() {
 
     // Record detailed question attempt
     try {
+      const timeClassification = classifyTime(timeSpent)
       await apiClient.recordQuestionAttempt(
         sessionState.sessionId,
         identity.id,
@@ -263,7 +264,8 @@ export function useMathSession() {
         currentProblem.answer,
         isCorrect,
         timeSpent,
-        sessionState.currentProblemIndex + 1
+        sessionState.currentProblemIndex + 1,
+        timeClassification
       )
     } catch (err) {
       console.error('Failed to record question attempt:', err)
