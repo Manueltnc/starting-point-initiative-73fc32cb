@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { createApiClient } from '@/lib/api-client'
-import { classifyTime } from '@/lib/config'
+import { classifyTime, MAX_TIME_PER_QUESTION_SECONDS } from '@/lib/config'
 import { useSessionAnalytics } from '@/hooks/useSessionAnalytics'
 import { useSessionProgress } from '@/hooks/useSessionProgress'
 import { useProblemQueue } from '@/hooks/useProblemQueue'
@@ -60,8 +60,11 @@ export function useMathSession() {
     if (!identity) throw new Error('User not authenticated')
 
     // Record detailed question attempt
+    // Cap time spent at 3 minutes to prevent database overflow and unrealistic times
+    const cappedTimeSpent = Math.min(timeSpent, MAX_TIME_PER_QUESTION_SECONDS)
+    
     try {
-      const timeClassification = classifyTime(timeSpent)
+      const timeClassification = classifyTime(cappedTimeSpent)
       await apiClient.recordQuestionAttempt(
         sessionState.sessionId,
         identity.id,
@@ -70,7 +73,7 @@ export function useMathSession() {
         answer,
         currentProblem.answer,
         isCorrect,
-        timeSpent,
+        cappedTimeSpent,
         sessionState.currentProblemIndex + 1,
         timeClassification
       )
@@ -85,11 +88,12 @@ export function useMathSession() {
     )
 
     // Update grid progress with enhanced analytics
+    // Use capped time for grid updates as well
     const gridUpdate = updateGridCell(
       existingUpdate,
       currentProblem,
       answer,
-      timeSpent,
+      cappedTimeSpent,
       isCorrect
     )
 
@@ -124,10 +128,11 @@ export function useMathSession() {
     const metrics = calculateSessionMetrics(tempSessionState)
 
     // Update session in database with enhanced analytics
+    // Use capped time for session duration update
     try {
       await apiClient.updateSession(sessionState.sessionId, {
         ...metrics,
-        duration: timeSpent
+        duration: cappedTimeSpent
       })
     } catch (err) {
       console.error('Failed to update session:', err)

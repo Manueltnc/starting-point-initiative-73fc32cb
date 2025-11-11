@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { EquationProblem } from '@/components/ui/EquationDisplay'
+import { MAX_TIME_PER_QUESTION_SECONDS } from '@/lib/config'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import type { MathProblem } from '@/types'
@@ -37,13 +38,23 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
   }, [problem])
 
   useEffect(() => {
-    if (startTime && !showResult) {
+    if (startTime && !showResult && !submitting) {
       const interval = setInterval(() => {
-        setTimeSpent(Math.floor((Date.now() - startTime) / 1000))
+        const elapsed = Math.floor((Date.now() - startTime) / 1000)
+        setTimeSpent(elapsed)
+        
+        // Auto-submit if 3 minutes (180 seconds) reached
+        if (elapsed >= MAX_TIME_PER_QUESTION_SECONDS) {
+          // Auto-submit with current answer (or 0 if no answer) - will be marked incorrect if wrong
+          const answerToSubmit = userAnswer ? parseInt(userAnswer) : 0
+          if (!isNaN(answerToSubmit) && !submitting && !showResult) {
+            handleSubmit()
+          }
+        }
       }, 1000)
       return () => clearInterval(interval)
     }
-  }, [startTime, showResult])
+  }, [startTime, showResult, userAnswer, submitting, handleSubmit])
 
   // Cleanup timer on component unmount
   useEffect(() => {
@@ -54,19 +65,23 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
     }
   }, [advanceTimerRef])
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     // Prevent multiple submissions
-    if (!userAnswer || submitting || showResult) return
+    if (submitting || showResult) return
 
-    const answer = parseInt(userAnswer)
+    // If no answer provided (e.g., auto-submit at 3 minutes), use 0 as answer (will be marked incorrect)
+    const answer = userAnswer ? parseInt(userAnswer) : 0
     if (isNaN(answer)) return
 
     try {
       setSubmitting(true)
 
-      console.log('Submitting answer (MathProblem):', { answer, timeSpent, problem })
+      // Cap time spent at 3 minutes
+      const cappedTimeSpent = Math.min(timeSpent, MAX_TIME_PER_QUESTION_SECONDS)
 
-      const result = await onAnswer(answer, timeSpent)
+      console.log('Submitting answer (MathProblem):', { answer, timeSpent: cappedTimeSpent, problem, autoSubmitted: !userAnswer })
+
+      const result = await onAnswer(answer, cappedTimeSpent)
 
       console.log('Answer submitted successfully (MathProblem):', result)
 
@@ -92,7 +107,7 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
       // Reset submission state on error so user can try again
       setSubmitting(false)
     }
-  }
+  }, [userAnswer, submitting, showResult, timeSpent, problem, onAnswer, isLastProblem, onComplete])
 
   const handleAnswerChange = (value: string) => {
     setUserAnswer(value)

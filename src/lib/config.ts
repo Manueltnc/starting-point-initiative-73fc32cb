@@ -27,6 +27,9 @@ export const TIME_CLASSIFICATION = {
   medium: 15  // 5-15 seconds (>15 is slow)
 }
 
+// Maximum time allowed per question (3 minutes)
+export const MAX_TIME_PER_QUESTION_SECONDS = 180
+
 export const PROGRESS_GRID_CONFIG = {
   // How many days to consider a failure "recent" for orange highlighting
   recentFailureWindowDays: 7

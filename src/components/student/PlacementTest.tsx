@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { AppHeader } from '@/components/ui/AppHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { supabase } from '@/integrations/supabase/client'
+import { MAX_TIME_PER_QUESTION_SECONDS } from '@/lib/config'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import type { MathProblem } from '@/types'
@@ -134,30 +135,44 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     }
   }, [placementState, sessionState, completeSession, onComplete, onJourneyStateChange])
 
-  // Timer: Update time spent while answering
+  // Timer: Update time spent while answering and auto-submit at 3 minutes
   useEffect(() => {
-    if (startTime && placementState === 'answering') {
+    if (startTime && placementState === 'answering' && currentProblem) {
       const interval = setInterval(() => {
-        setTimeSpent(Math.floor((Date.now() - startTime) / 1000))
+        const elapsed = Math.floor((Date.now() - startTime) / 1000)
+        setTimeSpent(elapsed)
+        
+        // Auto-submit if 3 minutes (180 seconds) reached
+        if (elapsed >= MAX_TIME_PER_QUESTION_SECONDS) {
+          // Auto-submit with current answer (or 0 if no answer) - will be marked incorrect if wrong
+          const answerToSubmit = userAnswer ? parseInt(userAnswer) : 0
+          if (!isNaN(answerToSubmit) && placementState === 'answering') {
+            handleSubmit(answerToSubmit)
+          }
+        }
       }, 1000)
       return () => clearInterval(interval)
     }
-  }, [startTime, placementState])
+  }, [startTime, placementState, currentProblem, userAnswer])
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (forceAnswer?: number) => {
     // Prevent multiple submissions - only allow when in answering state
-    if (placementState !== 'answering' || !currentProblem || !userAnswer) return
+    if (placementState !== 'answering' || !currentProblem) return
 
-    const answer = parseInt(userAnswer)
+    // Use provided answer, or parse userAnswer, or default to 0 (for auto-submit)
+    const answer = forceAnswer !== undefined ? forceAnswer : (userAnswer ? parseInt(userAnswer) : 0)
     if (isNaN(answer)) return
 
     try {
       setPlacementState('submitting')
 
-      // Calculate the exact time spent for this question
-      const currentTimeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timeSpent
+      // Calculate the exact time spent for this question, capped at 3 minutes
+      const currentTimeSpent = Math.min(
+        startTime ? Math.floor((Date.now() - startTime) / 1000) : timeSpent,
+        MAX_TIME_PER_QUESTION_SECONDS
+      )
 
-      console.log('Submitting answer:', { answer, currentTimeSpent, problem: currentProblem })
+      console.log('Submitting answer:', { answer, currentTimeSpent, problem: currentProblem, autoSubmitted: !userAnswer })
 
       const result = await submitAnswer(answer, currentTimeSpent)
 
@@ -171,7 +186,27 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
       // Reset to answering state on error so user can try again
       setPlacementState('answering')
     }
-  }
+  }, [placementState, currentProblem, userAnswer, startTime, timeSpent, submitAnswer])
+
+  // Timer: Update time spent while answering and auto-submit at 3 minutes
+  useEffect(() => {
+    if (startTime && placementState === 'answering' && currentProblem) {
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000)
+        setTimeSpent(elapsed)
+        
+        // Auto-submit if 3 minutes (180 seconds) reached
+        if (elapsed >= MAX_TIME_PER_QUESTION_SECONDS) {
+          // Auto-submit with current answer (or 0 if no answer) - will be marked incorrect if wrong
+          const answerToSubmit = userAnswer ? parseInt(userAnswer) : 0
+          if (!isNaN(answerToSubmit) && placementState === 'answering') {
+            handleSubmit(answerToSubmit)
+          }
+        }
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [startTime, placementState, currentProblem, userAnswer, handleSubmit])
 
   const handleAnswerChange = (value: string) => {
     setUserAnswer(value)
