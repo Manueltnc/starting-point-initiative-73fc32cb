@@ -5,7 +5,6 @@ import { AppHeader } from '@/components/ui/AppHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { MathProblem } from './MathProblem'
-import { SessionRecoveryModal } from './SessionRecoveryModal'
 import { PRACTICE_CONFIG } from '@/lib/config'
 import { supabase } from '@/integrations/supabase/client'
 import { Target, Trophy } from 'lucide-react'
@@ -18,14 +17,12 @@ interface PracticeGridProps {
 }
 
 export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
-  const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading, checkForActiveSessions } = useMathSession()
+  const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading } = useMathSession()
   const { getGuardrailMasteryPercentage } = useGridProgress()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [problemIndex, setProblemIndex] = useState(0)
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false)
-  const [hasCheckedForSessions, setHasCheckedForSessions] = useState(false)
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
 
@@ -53,7 +50,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     if (startTime) {
       const interval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000)
-        
+
         if (elapsed >= SESSION_DURATION) {
           handleSessionComplete()
         }
@@ -62,52 +59,9 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     }
   }, [startTime])
 
-  // Check for active sessions on component mount
-  useEffect(() => {
-    const checkForSessions = async () => {
-      if (hasCheckedForSessions) return
-      
-      try {
-        const activeSessions = await checkForActiveSessions()
-        if (activeSessions && activeSessions.length > 0) {
-          setShowRecoveryModal(true)
-        }
-        setHasCheckedForSessions(true)
-      } catch (err) {
-        console.error('Failed to check for active sessions:', err)
-        setHasCheckedForSessions(true)
-      }
-    }
-
-    checkForSessions()
-  }, [checkForActiveSessions, hasCheckedForSessions])
-
   const handleSessionComplete = async () => {
     await completeSession()
     onComplete()
-  }
-
-  const handleResumeSession = async (sessionId: string) => {
-    try {
-      // TODO: Implement session resumption logic
-      // This would involve loading the session state and continuing from where it left off
-      console.log('Resuming session:', sessionId)
-      setShowRecoveryModal(false)
-      // For now, just start a new session
-      setSessionStarted(true)
-      setStartTime(Date.now())
-    } catch (err) {
-      console.error('Failed to resume session:', err)
-      // Fall back to starting a new session
-      setSessionStarted(true)
-      setStartTime(Date.now())
-    }
-  }
-
-  const handleStartNewSession = () => {
-    setShowRecoveryModal(false)
-    setSessionStarted(true)
-    setStartTime(Date.now())
   }
 
   const handleAnswer = async (answer: number, timeSpent: number) => {
@@ -227,14 +181,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
           isLastProblem={problemIndex === (sessionState?.problemQueue.length || 0) - 1}
         />
       </div>
-
-      {/* Session Recovery Modal */}
-      <SessionRecoveryModal
-        isOpen={showRecoveryModal}
-        onClose={() => setShowRecoveryModal(false)}
-        onResumeSession={handleResumeSession}
-        onStartNewSession={handleStartNewSession}
-      />
     </div>
   )
 }
