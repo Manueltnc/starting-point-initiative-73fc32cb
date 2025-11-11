@@ -37,26 +37,60 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
       const problems9to12 = generateMathProblems([9, 12], [9, 12], advancedCount)
       const allProblems = [...problems1to9, ...problems9to12]
       
-      // Shuffle the problems
-      const shuffledProblems = allProblems.sort(() => Math.random() - 0.5)
+      // Deduplicate problems (ranges overlap at 9, so duplicates are possible)
+      const seenProblems = new Set<string>()
+      const uniqueProblems: MathProblem[] = []
+      for (const problem of allProblems) {
+        const problemKey = `${problem.multiplicand}×${problem.multiplier}`
+        if (!seenProblems.has(problemKey)) {
+          seenProblems.add(problemKey)
+          uniqueProblems.push(problem)
+        }
+      }
+      
+      // If we lost problems due to deduplication, we need to generate more
+      // But first, shuffle what we have
+      const shuffledProblems = uniqueProblems.sort(() => Math.random() - 0.5)
+      
+      // If we don't have enough unique problems, generate more from the full range
+      if (shuffledProblems.length < totalQuestions) {
+        const additionalNeeded = totalQuestions - shuffledProblems.length
+        const additionalProblems = generateMathProblems([1, 12], [1, 12], additionalNeeded)
+        
+        // Deduplicate additional problems against what we already have
+        for (const problem of additionalProblems) {
+          if (shuffledProblems.length >= totalQuestions) break
+          const problemKey = `${problem.multiplicand}×${problem.multiplier}`
+          if (!seenProblems.has(problemKey)) {
+            seenProblems.add(problemKey)
+            shuffledProblems.push(problem)
+          }
+        }
+        
+        // Final shuffle to mix in the additional problems
+        shuffledProblems.sort(() => Math.random() - 0.5)
+      }
+      
+      // Trim to exact count needed
+      const finalProblems = shuffledProblems.slice(0, totalQuestions)
 
       const { sessionId } = await apiClient.createSession(
         'math',
         email,
         gradeLevel,
-        { sessionType: 'placement', problems: shuffledProblems }
+        { sessionType: 'placement', problems: finalProblems }
       )
 
       setSessionState({
         sessionId,
         sessionType: 'placement',
         currentProblemIndex: 0,
-        problemQueue: shuffledProblems,
+        problemQueue: finalProblems,
         incorrectProblems: [],
         gridUpdates: []
       })
 
-      return { sessionId, problems: shuffledProblems }
+      return { sessionId, problems: finalProblems }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start placement test')
       throw err
@@ -131,8 +165,19 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
       adaptiveProblemQueue.push(...shuffledIntermediate.slice(0, intermediateCount))
       adaptiveProblemQueue.push(...shuffledAdvanced.slice(0, advancedCount))
 
+      // Deduplicate problems (shouldn't happen, but safety check)
+      const seenProblems = new Set<string>()
+      const uniqueProblems: MathProblem[] = []
+      for (const problem of adaptiveProblemQueue) {
+        const problemKey = `${problem.multiplicand}×${problem.multiplier}`
+        if (!seenProblems.has(problemKey)) {
+          seenProblems.add(problemKey)
+          uniqueProblems.push(problem)
+        }
+      }
+
       // Final shuffle to mix difficulty levels during practice
-      const finalProblemQueue = shuffleArray(adaptiveProblemQueue)
+      const finalProblemQueue = shuffleArray(uniqueProblems)
 
       const { sessionId } = await apiClient.createSession(
         'math',

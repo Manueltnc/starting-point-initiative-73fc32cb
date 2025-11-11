@@ -54,14 +54,20 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   useEffect(() => {
     if (sessionState && sessionState.problemQueue.length > 0 && placementState === 'answering') {
       const problem = getCurrentProblem()
-      if (problem && problem !== currentProblem) {
-        setCurrentProblem(problem)
-        setStartTime(Date.now())
-        setTimeSpent(0)
-        setUserAnswer('')
+      if (problem) {
+        // Use problem ID or multiplicand×multiplier for comparison instead of object reference
+        const problemKey = problem.id || `${problem.multiplicand}×${problem.multiplier}`
+        const currentProblemKey = currentProblem?.id || (currentProblem ? `${currentProblem.multiplicand}×${currentProblem.multiplier}` : null)
+        
+        if (problemKey !== currentProblemKey) {
+          setCurrentProblem(problem)
+          setStartTime(Date.now())
+          setTimeSpent(0)
+          setUserAnswer('')
+        }
       }
     }
-  }, [sessionState?.currentProblemIndex, placementState])
+  }, [sessionState?.currentProblemIndex, placementState, getCurrentProblem])
 
   // State machine: Handle auto-advance after showing result
   useEffect(() => {
@@ -85,14 +91,22 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   // State machine: Handle advancement logic
   useEffect(() => {
     if (placementState === 'advancing' && sessionState) {
-      const nextProblem = getNextProblem()
-      if (nextProblem) {
-        console.log('Advancing to next problem')
-        advanceToNextProblem()
-        setPlacementState('answering')
-      } else {
-        console.log('No more problems, completing test')
+      // Check if we're at the last problem before trying to advance
+      const isLastProblem = sessionState.currentProblemIndex >= sessionState.problemQueue.length - 1
+      
+      if (isLastProblem) {
+        console.log('At last problem, completing test')
         setPlacementState('completing')
+      } else {
+        const nextProblem = getNextProblem()
+        if (nextProblem) {
+          console.log('Advancing to next problem')
+          advanceToNextProblem()
+          setPlacementState('answering')
+        } else {
+          console.log('No more problems, completing test')
+          setPlacementState('completing')
+        }
       }
     }
   }, [placementState, sessionState, getNextProblem, advanceToNextProblem])

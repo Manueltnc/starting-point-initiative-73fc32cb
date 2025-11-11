@@ -41,10 +41,18 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     if (sessionState && sessionState.problemQueue.length > 0) {
       const nextProblem = getNextProblem()
       if (nextProblem) {
-        setCurrentProblem(nextProblem)
+        // Use problem ID or multiplicand×multiplier for comparison instead of object reference
+        const problemKey = nextProblem.id || `${nextProblem.multiplicand}×${nextProblem.multiplier}`
+        const currentProblemKey = currentProblem?.id || (currentProblem ? `${currentProblem.multiplicand}×${currentProblem.multiplier}` : null)
+        
+        if (problemKey !== currentProblemKey) {
+          setCurrentProblem(nextProblem)
+          // Sync problemIndex with sessionState.currentProblemIndex
+          setProblemIndex(sessionState.currentProblemIndex)
+        }
       }
     }
-  }, [sessionState, getNextProblem])
+  }, [sessionState?.currentProblemIndex, sessionState?.problemQueue.length, getNextProblem, currentProblem])
 
   useEffect(() => {
     if (startTime) {
@@ -67,19 +75,17 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const handleAnswer = async (answer: number, timeSpent: number) => {
     const result = await submitAnswer(answer, timeSpent)
     
-    // Advance to next problem first
-    advanceToNextProblem()
-    
-    // Then get the next problem
-    const nextProblem = getNextProblem()
-    if (nextProblem) {
-      setCurrentProblem(nextProblem)
-      setProblemIndex(prev => prev + 1)
-    } else {
-      // No more problems, session complete
-      await handleSessionComplete()
+    // Check if this was the last problem before advancing
+    if (sessionState && sessionState.currentProblemIndex >= sessionState.problemQueue.length - 1) {
+      // This was the last problem, session will complete after feedback
+      // The MathProblem component will call onComplete after showing feedback
+      return result
     }
     
+    // Advance to next problem
+    advanceToNextProblem()
+    
+    // The useEffect will handle updating currentProblem when sessionState.currentProblemIndex changes
     return result
   }
 
@@ -178,7 +184,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
           problem={currentProblem}
           onAnswer={handleAnswer}
           onComplete={handleProblemComplete}
-          isLastProblem={problemIndex === (sessionState?.problemQueue.length || 0) - 1}
+          isLastProblem={sessionState ? sessionState.currentProblemIndex >= sessionState.problemQueue.length - 1 : false}
         />
       </div>
     </div>
