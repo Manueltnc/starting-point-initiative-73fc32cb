@@ -37,8 +37,11 @@ export function EmailContinue({ onSuccess }: EmailContinueProps) {
   return (
     <Card className="w-full max-w-md mx-auto backdrop-blur-sm bg-white/80 border-white/20">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-primary">Welcome!</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-2xl font-bold text-primary">Multiplication Wizard</CardTitle>
+        <CardDescription className="text-sm text-muted-foreground">
+          A Learning Boltz Experience
+        </CardDescription>
+        <CardDescription className="mt-2">
           Enter your email to continue your math journey
         </CardDescription>
       </CardHeader>

@@ -1,6 +1,5 @@
 import { EmailContinue } from '@/components/auth/EmailContinue'
 import { AppHeader } from '@/components/ui/AppHeader'
-import { BookOpen } from 'lucide-react'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 
 interface LoginPageProps {
@@ -35,20 +34,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         
         <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
           <div className="w-full max-w-md">
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <BookOpen className="h-4 w-4" />
-                <span>Educational Learning Platform</span>
-              </div>
-            </div>
-
         {/* Email Form */}
         <EmailContinue onSuccess={handleEmailSubmit} />
-
-            {/* Footer */}
-            <div className="text-center mt-8 text-xs text-muted-foreground">
-              <p>© 2024 Education Apps Unified. All rights reserved.</p>
-            </div>
           </div>
         </div>
       </div>
