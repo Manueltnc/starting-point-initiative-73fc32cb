@@ -11,11 +11,12 @@ export function AppHeader({ onLogout, showLogout = true, userName }: AppHeaderPr
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-3">
-        <img
+        {/* Logo temporarily hidden */}
+        {/* <img
           src="https://pyoyzyzhcwrqqyujjmze.supabase.co/storage/v1/object/public/learning_boltz/Horizontal%20Lockup%20Color%20(1).svg"
           alt="Learning Boltz Logo"
-          className="h-12 w-auto"
-        />
+          className="h-12 w-12 rounded-lg object-cover"
+        /> */}
         <div>
           <h1 className="text-2xl font-bold text-primary">Multiplication Wizard</h1>
           <p className="text-muted-foreground italic">A Learning Boltz Experience</p>

@@ -77,45 +77,58 @@ export function ProgressGrid({ email, gradeLevel }: ProgressGridProps) {
       <div className="max-w-6xl mx-auto">
         {/* Header Stats */}
         <div className="mb-6">
-          <Card className="backdrop-blur-sm bg-white/80 border-white/20">
+          <Card className="backdrop-blur-sm bg-white/80 border-white/20 mb-6">
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-primary text-center">
                 Your Progress Grid
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Trophy className="h-5 w-5 text-yellow-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Overall Mastery</span>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">{getMasteryPercentage()}%</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Target className="h-5 w-5 text-green-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Guardrail Mastery</span>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">{getGuardrailMasteryPercentage()}%</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <BarChart3 className="h-5 w-5 text-blue-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Total Correct</span>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">{progress.totalCorrectAnswers}</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Clock className="h-5 w-5 text-purple-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Total Attempts</span>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">{progress.totalAttempts}</p>
-                </div>
-              </div>
-            </CardContent>
           </Card>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Overall Mastery Card */}
+            <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
+              <CardContent className="pt-6">
+                <div className="bg-primary/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Trophy className="h-8 w-8 text-primary" />
+                </div>
+                <p className="text-xs text-muted-foreground mb-1 text-center">Overall Mastery</p>
+                <p className="text-3xl font-bold text-primary text-center">{getMasteryPercentage()}%</p>
+              </CardContent>
+            </Card>
+
+            {/* Guardrail Mastery Card */}
+            <Card className="bg-gradient-to-br from-secondary/20 to-secondary/5 border-secondary/30 hover:shadow-lg transition-all">
+              <CardContent className="pt-6">
+                <div className="bg-secondary/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Target className="h-8 w-8 text-secondary" />
+                </div>
+                <p className="text-xs text-muted-foreground mb-1 text-center">Guardrail Mastery</p>
+                <p className="text-3xl font-bold text-secondary text-center">{getGuardrailMasteryPercentage()}%</p>
+              </CardContent>
+            </Card>
+
+            {/* Total Correct Card */}
+            <Card className="bg-gradient-to-br from-accent/20 to-accent/5 border-accent/30 hover:shadow-lg transition-all">
+              <CardContent className="pt-6">
+                <div className="bg-accent/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <BarChart3 className="h-8 w-8 text-accent" />
+                </div>
+                <p className="text-xs text-muted-foreground mb-1 text-center">Total Correct</p>
+                <p className="text-3xl font-bold text-accent text-center">{progress.totalCorrectAnswers}</p>
+              </CardContent>
+            </Card>
+
+            {/* Total Attempts Card */}
+            <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
+              <CardContent className="pt-6">
+                <div className="bg-primary/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Clock className="h-8 w-8 text-primary" />
+                </div>
+                <p className="text-xs text-muted-foreground mb-1 text-center">Total Attempts</p>
+                <p className="text-3xl font-bold text-primary text-center">{progress.totalAttempts}</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Progress Grid */}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppHeader } from '@/components/ui/AppHeader'
@@ -7,7 +8,7 @@ import { useGridProgress } from '@/hooks/useGridProgress'
 import { MathProblem } from './MathProblem'
 import { PRACTICE_CONFIG } from '@/lib/config'
 import { supabase } from '@/integrations/supabase/client'
-import { Target, Trophy } from 'lucide-react'
+import { Target, Trophy, ArrowLeft } from 'lucide-react'
 import type { MathProblem as MathProblemType } from '@/types'
 
 interface PracticeGridProps {
@@ -17,6 +18,7 @@ interface PracticeGridProps {
 }
 
 export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
+  const navigate = useNavigate()
   const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading } = useMathSession()
   const { getGuardrailMasteryPercentage } = useGridProgress()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
@@ -29,6 +31,10 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const handleLogout = async () => {
     await supabase.auth.signOut()
     window.location.href = '/'
+  }
+
+  const handleBackToDashboard = () => {
+    navigate('/')
   }
 
   useEffect(() => {
@@ -111,7 +117,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
         <div className="max-w-4xl mx-auto">
           <AppHeader onLogout={handleLogout} />
           <div className="flex items-center justify-center">
-            <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
+            <Card className="w-full max-w-md bg-gradient-to-br from-secondary/20 to-secondary/5 border-secondary/30 hover:shadow-lg transition-all">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-bold text-primary">Practice Session</CardTitle>
                 <p className="text-muted-foreground">
@@ -125,7 +131,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
                     setSessionStarted(true)
                     setStartTime(Date.now())
                   }}
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
                   size="lg"
                 >
                   Start Practice
@@ -155,21 +161,36 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
         {/* App Header with Branding */}
         <AppHeader onLogout={handleLogout} />
 
+        {/* Back Button */}
+        <div className="mb-4">
+          <Button
+            onClick={handleBackToDashboard}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+
         {/* Session Info Header (Timer hidden, analytics still track in background) */}
         <div className="mb-6">
-          <Card className="backdrop-blur-sm bg-white/80 border-white/20">
+          <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Problem {problemIndex + 1}
-                    </span>
+                  <div className="bg-primary/20 w-10 h-10 rounded-full flex items-center justify-center">
+                    <Target className="h-5 w-5 text-primary" />
                   </div>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Problem {problemIndex + 1}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-muted-foreground" />
+                  <div className="bg-secondary/20 w-10 h-10 rounded-full flex items-center justify-center">
+                    <Trophy className="h-5 w-5 text-secondary" />
+                  </div>
                   <span className="text-sm font-medium text-muted-foreground">
                     {getGuardrailMasteryPercentage()}% mastered
                   </span>

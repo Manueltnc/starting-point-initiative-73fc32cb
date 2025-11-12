@@ -102,7 +102,7 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
         <div className="max-w-4xl mx-auto">
           <AppHeader onLogout={handleLogout} />
           <div className="flex items-center justify-center">
-            <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
+            <Card className="w-full max-w-md bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-bold text-primary">Complete Placement First</CardTitle>
                 <p className="text-muted-foreground">
@@ -110,7 +110,11 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button onClick={handleStartPlacement} className="w-full" size="lg">
+                <Button 
+                  onClick={handleStartPlacement} 
+                  className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105" 
+                  size="lg"
+                >
                   <Target className="h-4 w-4 mr-2" />
                   Start Placement Test
                 </Button>

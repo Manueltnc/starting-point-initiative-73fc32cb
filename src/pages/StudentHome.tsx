@@ -51,40 +51,123 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
         {/* Header */}
         <AppHeader onLogout={onLogout} showLogout={true} userName={displayName} />
 
-        {/* Progress Overview */}
+        {/* Concise Metrics Overview */}
         {progress && (
           <div className="mb-8">
-            <Card className="backdrop-blur-sm bg-white/80 border-white/20">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">Your Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <Trophy className="h-5 w-5 text-yellow-500" />
-                      <span className="text-sm font-medium text-muted-foreground">Overall Mastery</span>
-                    </div>
-                    <p className="text-3xl font-bold text-primary">{getMasteryPercentage()}%</p>
-                    <Progress value={getMasteryPercentage()} className="mt-2" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Overall Mastery Card */}
+              <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Trophy className="h-5 w-5 text-primary" />
+                    <p className="text-xs text-muted-foreground">Overall Mastery</p>
                   </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <Target className="h-5 w-5 text-green-500" />
-                      <span className="text-sm font-medium text-muted-foreground">Guardrail Mastery</span>
-                    </div>
-                    <p className="text-3xl font-bold text-primary">{getGuardrailMasteryPercentage()}%</p>
-                    <Progress value={getGuardrailMasteryPercentage()} className="mt-2" />
+                  <p className="text-2xl font-bold text-primary text-center">{getMasteryPercentage()}%</p>
+                </CardContent>
+              </Card>
+
+              {/* Guardrail Mastery Card */}
+              <Card className="bg-gradient-to-br from-secondary/20 to-secondary/5 border-secondary/30 hover:shadow-lg transition-all">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Target className="h-5 w-5 text-secondary" />
+                    <p className="text-xs text-muted-foreground">Guardrail Mastery</p>
                   </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <BarChart3 className="h-5 w-5 text-blue-500" />
-                      <span className="text-sm font-medium text-muted-foreground">Current Level</span>
+                  <p className="text-2xl font-bold text-secondary text-center">{getGuardrailMasteryPercentage()}%</p>
+                </CardContent>
+              </Card>
+
+              {/* Total Correct Card */}
+              <Card className="bg-gradient-to-br from-accent/20 to-accent/5 border-accent/30 hover:shadow-lg transition-all">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <BarChart3 className="h-5 w-5 text-accent" />
+                    <p className="text-xs text-muted-foreground">Total Correct</p>
+                  </div>
+                  <p className="text-2xl font-bold text-accent text-center">{progress.totalCorrectAnswers}</p>
+                </CardContent>
+              </Card>
+
+              {/* Mastered Facts Card */}
+              <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Star className="h-5 w-5 text-primary" />
+                    <p className="text-xs text-muted-foreground">Mastered Facts</p>
+                  </div>
+                  <p className="text-2xl font-bold text-primary text-center">
+                    {progress.gridState.flat().filter(cell => cell.consecutiveCorrect >= 3).length}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Practice Session Card - Full width, prominent, white background */}
+        {canStartPractice && (
+          <div className="mb-6">
+            <Card className="bg-white border-2 border-primary/20 hover:shadow-lg transition-all">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-primary/20 w-16 h-16 rounded-full flex items-center justify-center">
+                        <Target className="h-8 w-8 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-primary">Practice Session</h2>
+                        <p className="text-muted-foreground">
+                          Practice multiplication problems for up to 10 minutes. Focus on problems you haven't mastered yet!
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-3xl font-bold text-primary">{progress.currentGuardrail}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Grade {gradeLevel}
-                    </p>
+                  </div>
+                  <div className="flex justify-center lg:justify-end">
+                    <Button 
+                      onClick={() => onStartPractice('practice')} 
+                      className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 text-lg px-8 py-6"
+                      size="lg"
+                    >
+                      <Play className="h-5 w-5 mr-2" />
+                      Start Practice
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Progress Grid Card - Full width, prominent, orange/yellow gradient */}
+        {canStartPractice && (
+          <div className="mb-6">
+            <Card className="bg-gradient-to-br from-orange-100 via-amber-100 to-yellow-100 dark:from-orange-900/20 dark:via-amber-900/20 dark:to-yellow-900/20 border-0 hover:shadow-lg transition-all">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-white dark:bg-gray-800 w-16 h-16 rounded-full flex items-center justify-center shadow-md">
+                        <BarChart3 className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-orange-700 dark:text-orange-300">Progress Grid</h2>
+                        <p className="text-muted-foreground">
+                          View your detailed progress grid and see which multiplication facts you've mastered.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-center lg:justify-end">
+                    <Button 
+                      onClick={onViewProgress} 
+                      variant="outline" 
+                      className="text-lg px-8 py-6 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                      size="lg"
+                    >
+                      <BarChart3 className="h-5 w-5 mr-2" />
+                      View Full Progress
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -109,7 +192,11 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
                       Take a placement test to determine your starting level and create your personalized learning path. 
                       This helps us understand your current skills and provide you with the perfect challenges to help you grow!
                     </p>
-                    <Button onClick={() => onStartPlacement('placement')} className="w-full lg:w-auto" size="lg">
+                    <Button 
+                      onClick={() => onStartPlacement('placement')} 
+                      className="w-full lg:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105" 
+                      size="lg"
+                    >
                       <Play className="h-5 w-5 mr-2" />
                       Start Placement Test
                     </Button>
@@ -222,90 +309,7 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
           </div>
         )}
 
-        {/* Regular Action Cards for when practice is available */}
-        {canStartPractice && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Practice Session - Primary action after placement */}
-            <Card className="backdrop-blur-sm bg-white/80 border-white/20 hover:bg-white/90 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  Practice Session
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Practice multiplication problems for up to 10 minutes. Focus on problems you haven't mastered yet!
-                </p>
-                <Button 
-                  onClick={() => onStartPractice('practice')} 
-                  className="w-full"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Practice
-                </Button>
-              </CardContent>
-            </Card>
 
-          {/* Progress Grid - Only show when practice is ready */}
-          {canStartPractice && (
-            <Card className="backdrop-blur-sm bg-white/80 border-white/20 hover:bg-white/90 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Progress Grid
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  View your detailed progress grid and see which multiplication facts you've mastered.
-                </p>
-                <div className="space-y-3">
-                  <Button onClick={onViewProgress} variant="outline" className="w-full">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    View Full Progress
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          </div>
-        )}
-
-        {/* Quick Stats */}
-        {progress && (
-          <div className="mt-8">
-            <Card className="backdrop-blur-sm bg-white/80 border-white/20">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">{progress.totalCorrectAnswers}</p>
-                    <p className="text-sm text-muted-foreground">Total Correct</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">{progress.totalAttempts}</p>
-                    <p className="text-sm text-muted-foreground">Total Attempts</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">
-                      {progress.totalAttempts > 0 ? Math.round((progress.totalCorrectAnswers / progress.totalAttempts) * 100) : 0}%
-                    </p>
-                    <p className="text-sm text-muted-foreground">Accuracy</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">
-                      {progress.gridState.flat().filter(cell => cell.consecutiveCorrect >= 3).length}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Mastered Facts</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {/* Bottom encouragement section for placement test only */}
         {shouldShowPlacement && !canStartPractice && (
