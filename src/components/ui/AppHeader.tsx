@@ -1,28 +1,25 @@
-import { Button } from "@/components/ui/button"
-import { LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 interface AppHeaderProps {
-  onLogout?: () => void
-  showLogout?: boolean
-  userName?: string
+  onLogout?: () => void;
+  showLogout?: boolean;
+  userName?: string;
 }
 
 export function AppHeader({ onLogout, showLogout = true, userName }: AppHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-3">
-        {/* Logo temporarily hidden */}
-        {/* <img
-          src="https://pyoyzyzhcwrqqyujjmze.supabase.co/storage/v1/object/public/learning_boltz/Horizontal%20Lockup%20Color%20(1).svg"
+        <img
+          src="https://gckzqfnwfveskxkhbrrl.supabase.co/storage/v1/object/public/learning_boltz/file.svg"
           alt="Learning Boltz Logo"
           className="h-12 w-12 rounded-lg object-cover"
-        /> */}
+        />
         <div>
           <h1 className="text-2xl font-bold text-primary">Multiplication Wizard</h1>
           <p className="text-muted-foreground italic">A Learning Boltz Experience</p>
-          {userName && (
-            <p className="text-sm text-muted-foreground">Welcome back, {userName}!</p>
-          )}
+          {userName && <p className="text-sm text-muted-foreground">Welcome back, {userName}!</p>}
         </div>
       </div>
       {showLogout && onLogout && (
@@ -32,5 +29,5 @@ export function AppHeader({ onLogout, showLogout = true, userName }: AppHeaderPr
         </Button>
       )}
     </div>
-  )
+  );
 }
