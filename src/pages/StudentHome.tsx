@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { AppHeader } from '@/components/ui/AppHeader'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useGridProgress } from '@/hooks/useGridProgress'
@@ -43,7 +42,6 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
   }
 
   const displayName = identity?.metadata?.display_name || identity?.email || 'Student'
-  const gradeLevel = identity?.metadata?.grade_level || '3'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">

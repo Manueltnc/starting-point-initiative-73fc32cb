@@ -1065,6 +1065,9 @@ export type Database = {
           email: string
           id: string
           level_start_date: string | null
+          magic_token: string | null
+          token_created_at: string | null
+          token_last_used_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1073,6 +1076,9 @@ export type Database = {
           email: string
           id?: string
           level_start_date?: string | null
+          magic_token?: string | null
+          token_created_at?: string | null
+          token_last_used_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1081,6 +1087,9 @@ export type Database = {
           email?: string
           id?: string
           level_start_date?: string | null
+          magic_token?: string | null
+          token_created_at?: string | null
+          token_last_used_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
