@@ -44,7 +44,7 @@ export function calculateSessionMetrics(sessionState: MathSessionState) {
 export function updateGridCell(
   existingUpdate: MathGridCell | undefined,
   problem: MathProblem,
-  answer: number,
+  _answer: number,
   timeSpent: number,
   isCorrect: boolean
 ): MathGridCell {

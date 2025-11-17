@@ -12,9 +12,9 @@ export function AppHeader({ onLogout, showLogout = true, userName }: AppHeaderPr
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-3">
         <img
-          src="https://gckzqfnwfveskxkhbrrl.supabase.co/storage/v1/object/public/learning_boltz/file.svg"
+          src="https://gckzqfnwfveskxkhbrrl.supabase.co/storage/v1/object/public/learning_boltz/4.svg"
           alt="Learning Boltz Logo"
-          className="h-12 w-12 rounded-lg object-cover"
+          className="h-12 w-12 object-contain"
         />
         <div>
           <h1 className="text-2xl font-bold text-primary">Multiplication Wizard</h1>

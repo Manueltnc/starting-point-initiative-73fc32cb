@@ -12,7 +12,7 @@ const apiClient = createApiClient()
 
 export function useMathSession() {
   const { identity } = useStudentIdentity()
-  const { calculateSessionMetrics, updateGridCell, calculateAccuracy } = useSessionAnalytics()
+  const { calculateSessionMetrics, updateGridCell } = useSessionAnalytics()
   
   // Setup core session state management
   const {
