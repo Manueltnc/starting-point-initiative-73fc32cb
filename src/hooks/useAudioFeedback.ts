@@ -14,6 +14,10 @@ export function useAudioFeedback() {
       'https://vrbzndopcbnxpbrzuins.supabase.co/storage/v1/object/public/sound_effects/wrong-47985%20(1).mp3'
     )
 
+    // Set playback speed to 1.5x
+    successAudioRef.current.playbackRate = 1.5
+    errorAudioRef.current.playbackRate = 1.5
+
     successAudioRef.current.preload = 'auto'
     errorAudioRef.current.preload = 'auto'
 
@@ -34,34 +38,17 @@ export function useAudioFeedback() {
     }
   }, [])
 
-  const playSuccess = (): Promise<void> => {
-    return new Promise((resolve) => {
-      if (!successAudioRef.current) {
-        resolve()
-        return
-      }
+  const playSuccess = () => {
+    if (!successAudioRef.current) return
 
-      try {
-        successAudioRef.current.currentTime = 0
-        const playPromise = successAudioRef.current.play()
-        
-        if (playPromise) {
-          playPromise
-            .then(() => {
-              successAudioRef.current?.addEventListener('ended', () => resolve(), { once: true })
-            })
-            .catch((error) => {
-              console.warn('Success audio playback failed:', error)
-              resolve()
-            })
-        } else {
-          resolve()
-        }
-      } catch (error) {
-        console.warn('Success audio error:', error)
-        resolve()
-      }
-    })
+    try {
+      successAudioRef.current.currentTime = 0
+      successAudioRef.current.play().catch((error) => {
+        console.warn('Success audio playback failed:', error)
+      })
+    } catch (error) {
+      console.warn('Success audio error:', error)
+    }
   }
 
   const playError = () => {
