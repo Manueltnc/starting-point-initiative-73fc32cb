@@ -188,8 +188,8 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
         onExitSession={handleExitSession}
       />
       
-      <div className="container mx-auto px-4 py-8 pt-20">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="container mx-auto px-4 py-8 pt-24 max-w-4xl">
+        <div className="mb-8 flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium">
