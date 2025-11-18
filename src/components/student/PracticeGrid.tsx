@@ -188,19 +188,31 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
         onExitSession={handleExitSession}
       />
       
-      <div className="container mx-auto px-4 py-8 pt-24 max-w-4xl">
-        <div className="mb-8 flex items-center justify-between px-2">
-          <div className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium">
-              Problem {problemIndex + 1} of {sessionState?.problemQueue.length || 0}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            <span className="text-sm font-medium">
-              Mastery: {masteryPercentage}%
-            </span>
+      <div className="container mx-auto px-4 py-8 pt-24 max-w-5xl">
+        <div className="mb-12 bg-white/50 backdrop-blur-sm rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between max-w-3xl mx-auto">
+            <div className="flex items-center gap-3">
+              <Target className="h-6 w-6 text-primary" />
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Problem
+                </span>
+                <p className="text-lg font-bold">
+                  {problemIndex + 1} of {sessionState?.problemQueue.length || 0}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Trophy className="h-6 w-6 text-yellow-500" />
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Mastery
+                </span>
+                <p className="text-lg font-bold">
+                  {masteryPercentage}%
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

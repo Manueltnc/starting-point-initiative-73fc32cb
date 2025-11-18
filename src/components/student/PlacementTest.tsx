@@ -198,15 +198,19 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
         onExitSession={handleExitSession}
       />
       
-      <div className="container mx-auto px-4 py-8 pt-24 max-w-4xl">
-        <div className="mb-8 space-y-3 px-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">
-              Question {sessionState ? sessionState.currentProblemIndex + 1 : 0} of {sessionState?.problemQueue.length || 0}
-            </span>
-            <span className="text-muted-foreground">{Math.round(progress)}% Complete</span>
+      <div className="container mx-auto px-4 py-8 pt-24 max-w-5xl">
+        <div className="mb-12 bg-white/50 backdrop-blur-sm rounded-xl p-6 shadow-sm">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                Question {sessionState ? sessionState.currentProblemIndex + 1 : 0} of {sessionState?.problemQueue.length || 0}
+              </span>
+              <span className="text-sm font-medium text-muted-foreground">
+                {Math.round(progress)}% Complete
+              </span>
+            </div>
+            <Progress value={progress} className="h-3" />
           </div>
-          <Progress value={progress} className="h-2" />
         </div>
 
         <UnifiedMathQuestion
