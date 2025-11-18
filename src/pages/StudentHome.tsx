@@ -22,6 +22,36 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
   const { loading: journeyLoading, shouldShowPlacement, canStartPractice } = useStudentJourney()
   const [showProgressModal, setShowProgressModal] = useState(false)
 
+  // Check for active/stale sessions on mount
+  useEffect(() => {
+    const checkForActiveSessions = async () => {
+      if (!identity?.id) return
+
+      const { supabase } = await import('@/integrations/supabase/client')
+      const { data: sessions } = await supabase
+        .rpc('get_active_sessions_for_student', { student_uuid: identity.id })
+
+      if (sessions && sessions.length > 0) {
+        const session = sessions[0]
+        const lastActivity = new Date(session.last_activity_at)
+        const now = new Date()
+        const minutesSinceActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60)
+
+        // If session is stale (>30 min), mark as abandoned
+        if (minutesSinceActivity > 30) {
+          const { supabase: sb } = await import('@/integrations/supabase/client')
+          await sb
+            .from('multiplications_app_learning_sessions')
+            .update({ status: 'abandoned' })
+            .eq('id', session.id)
+          console.log('Marked stale session as abandoned')
+        }
+      }
+    }
+
+    checkForActiveSessions()
+  }, [identity])
+
   useEffect(() => {
     if (identity?.email) {
       // Fetch progress (only if practice is ready)
