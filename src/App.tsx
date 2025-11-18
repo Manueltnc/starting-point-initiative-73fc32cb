@@ -45,7 +45,7 @@ function StudentRoutes() {
 
       {/* Placement Routes */}
       <Route path="/placement/ready" element={<PlacementReady onLogout={handleLogout} />} />
-      <Route path="/placement/active/:sessionId" element={<PlacementActive onLogout={handleLogout} />} />
+      <Route path="/placement/active/:sessionId" element={<PlacementActive />} />
       <Route path="/placement/results/:sessionId" element={<SessionResults onLogout={handleLogout} sessionType="placement" />} />
 
       {/* Practice Routes (Protected - requires placement completion) */}
@@ -61,7 +61,7 @@ function StudentRoutes() {
         path="/practice/active/:sessionId"
         element={
           <PracticeGuard>
-            <PracticeActive onLogout={handleLogout} />
+            <PracticeActive />
           </PracticeGuard>
         }
       />

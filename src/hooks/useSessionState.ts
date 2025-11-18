@@ -215,7 +215,7 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
       await apiClient.updateSession(sessionState.sessionId, {
         ...metrics,
         duration: 0, // This would be calculated from the actual session duration
-        completed_items: sessionState.currentProblemIndex + 1, // Total problems answered
+        completed_items: sessionState.problemQueue.length, // All problems completed
         total_items: sessionState.problemQueue.length // Total problems in the session
       })
 

@@ -4,11 +4,7 @@ import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { PracticeGrid } from '@/components/student/PracticeGrid'
 import { buildRoute } from '@/lib/routes'
 
-interface PracticeActiveProps {
-  onLogout: () => void
-}
-
-export function PracticeActive({ onLogout }: PracticeActiveProps) {
+export function PracticeActive() {
   const navigate = useNavigate()
   const { sessionId } = useParams<{ sessionId: string }>()
   const { identity } = useStudentIdentity()

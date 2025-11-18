@@ -33,7 +33,6 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     loading 
   } = mathSession
   const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(null)
-  const [sessionStarted, setSessionStarted] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -45,14 +44,14 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
   // Track time elapsed
   useEffect(() => {
-    if (!sessionStarted || isPaused) return
+    if (!sessionState || isPaused) return
 
     const interval = setInterval(() => {
       setTimeElapsed(Math.floor((Date.now() - sessionStartTime) / 1000))
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [sessionStarted, isPaused, sessionStartTime])
+  }, [sessionState, isPaused, sessionStartTime])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -65,11 +64,13 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     navigate('/')
   }
 
+  // Auto-start placement test when component mounts
   useEffect(() => {
-    if (sessionStarted && !sessionState) {
+    if (!sessionState && !loading) {
       startPlacementTest(email, gradeLevel)
     }
-  }, [sessionStarted, sessionState, startPlacementTest, email, gradeLevel])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Empty deps intentional - only start once on mount
 
   useEffect(() => {
     if (sessionState && sessionState.problemQueue.length > 0 && !showFeedback) {
@@ -178,43 +179,6 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
             <CardTitle>Loading Placement Test...</CardTitle>
           </CardHeader>
         </Card>
-      </div>
-    )
-  }
-
-  if (!sessionStarted) {
-    return (
-      <div className="min-h-screen bg-background">
-        <SessionNavigationHeader
-          userName={displayName}
-          onLogout={handleLogout}
-          onExitSession={handleExitSession}
-        />
-        <div className="flex items-center justify-center pt-20">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-center">Placement Test</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-medium">What to expect:</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  <li>You'll answer multiplication problems</li>
-                  <li>Problems will adapt to your skill level</li>
-                  <li>Take your time - accuracy matters most</li>
-                  <li>This helps us personalize your learning</li>
-                </ul>
-              </div>
-              <Button
-                onClick={() => setSessionStarted(true)}
-                className="w-full"
-                size="lg"
-              >
-                Start Placement Test
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     )
   }
