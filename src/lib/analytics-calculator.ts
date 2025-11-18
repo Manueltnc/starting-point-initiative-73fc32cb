@@ -10,8 +10,20 @@ export interface MasteryAnalytics {
 }
 
 export function calculateMasteryAnalytics(gridState: MathGridCell[][]): MasteryAnalytics {
-  const allCells = gridState.flat().filter(cell => !cell.isLocked)
-  
+  // Safety check: ensure gridState is a valid array before calling .flat()
+  if (!gridState || !Array.isArray(gridState)) {
+    return {
+      totalFacts: 0,
+      masteredFacts: 0,
+      strugglingFacts: [],
+      recentlyMastered: [],
+      improvementTrend: 'stable',
+      recommendedPractice: []
+    }
+  }
+
+  const allCells = gridState.flat().filter(cell => cell && !cell.isLocked)
+
   const totalFacts = allCells.length
   const masteredFacts = allCells.filter(cell => cell.consecutiveCorrect >= 3).length
   
@@ -75,8 +87,21 @@ export function calculateMasteryAnalytics(gridState: MathGridCell[][]): MasteryA
 }
 
 export function getPerformanceTrends(gridState: MathGridCell[][]) {
-  const allCells = gridState.flat().filter(cell => !cell.isLocked)
-  
+  // Safety check: ensure gridState is a valid array before calling .flat()
+  if (!gridState || !Array.isArray(gridState)) {
+    return {
+      overallAccuracy: 0,
+      avgTimePerFact: 0,
+      speedDistribution: {
+        fast: 0,
+        medium: 0,
+        slow: 0
+      }
+    }
+  }
+
+  const allCells = gridState.flat().filter(cell => cell && !cell.isLocked)
+
   const totalAttempts = allCells.reduce((sum, cell) => sum + cell.attempts, 0)
   const totalCorrect = allCells.filter(cell => cell.lastAttemptCorrect).length
   const overallAccuracy = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0
