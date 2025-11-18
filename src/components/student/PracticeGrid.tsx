@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useGridProgress } from '@/hooks/useGridProgress'
-import { MathProblem } from './MathProblem'
+import { useAudioFeedback } from '@/hooks/useAudioFeedback'
+import { UnifiedMathQuestion } from './UnifiedMathQuestion'
 import { PRACTICE_CONFIG } from '@/lib/config'
 import { supabase } from '@/integrations/supabase/client'
 import { capitalizeName } from '@/lib/utils'
@@ -20,12 +21,16 @@ interface PracticeGridProps {
 
 export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
   const navigate = useNavigate()
+  const { playSuccess, playError } = useAudioFeedback()
   const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading } = useMathSession()
   const { getGuardrailMasteryPercentage } = useGridProgress()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [problemIndex, setProblemIndex] = useState(0)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const displayName = capitalizeName(email.split('@')[0])
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
@@ -36,7 +41,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   }
 
   const handleExitSession = async () => {
-    // Save progress and mark as abandoned
     await completeSession()
     navigate('/')
   }
@@ -51,14 +55,14 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     if (sessionState && sessionState.problemQueue.length > 0) {
       const nextProblem = getNextProblem()
       if (nextProblem) {
-        // Use problem ID or multiplicand×multiplier for comparison instead of object reference
         const problemKey = nextProblem.id || `${nextProblem.multiplicand}×${nextProblem.multiplier}`
         const currentProblemKey = currentProblem?.id || (currentProblem ? `${currentProblem.multiplicand}×${currentProblem.multiplier}` : null)
         
         if (problemKey !== currentProblemKey) {
           setCurrentProblem(nextProblem)
-          // Sync problemIndex with sessionState.currentProblemIndex
           setProblemIndex(sessionState.currentProblemIndex)
+          setShowFeedback(false)
+          setFeedbackResult(null)
         }
       }
     }
@@ -82,67 +86,81 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     onComplete()
   }
 
-  const handleAnswer = async (answer: number, timeSpent: number) => {
-    const result = await submitAnswer(answer, timeSpent)
-    
-    // Check if this was the last problem before advancing
-    if (sessionState && sessionState.currentProblemIndex >= sessionState.problemQueue.length - 1) {
-      // This was the last problem, session will complete after feedback
-      // The MathProblem component will call onComplete after showing feedback
-      return result
-    }
-    
-    // Advance to next problem
-    advanceToNextProblem()
-    
-    // The useEffect will handle updating currentProblem when sessionState.currentProblemIndex changes
-    return result
-  }
+  const handleSubmitAnswer = async (answer: number, timeSpent: number) => {
+    if (isSubmitting || !currentProblem) return
 
-  const handleProblemComplete = () => {
-    // This will be called when the last problem is completed
-    handleSessionComplete()
+    setIsSubmitting(true)
+
+    try {
+      const result = await submitAnswer(answer, timeSpent)
+
+      if (result.correct) {
+        playSuccess()
+      } else {
+        playError()
+      }
+
+      setFeedbackResult({
+        correct: result.correct,
+        correctAnswer: currentProblem.answer
+      })
+      setShowFeedback(true)
+      setIsSubmitting(false)
+
+      setTimeout(() => {
+        if (sessionState && sessionState.currentProblemIndex >= sessionState.problemQueue.length - 1) {
+          handleSessionComplete()
+        } else {
+          advanceToNextProblem()
+        }
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to submit answer:', error)
+      setIsSubmitting(false)
+    }
   }
 
   if (loading && !sessionState) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Preparing your practice session...</p>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Loading Practice Session...</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
     )
   }
 
   if (!sessionStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-        <div className="max-w-4xl mx-auto">
-          <SessionNavigationHeader onLogout={handleLogout} userName={displayName} />
-          <div className="flex items-center justify-center">
-            <Card className="w-full max-w-md bg-gradient-to-br from-secondary/20 to-secondary/5 border-secondary/30 hover:shadow-lg transition-all">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl font-bold text-primary">Practice Session</CardTitle>
-                <p className="text-muted-foreground">
-                  Practice multiplication problems for up to 10 minutes.
-                  Focus on problems you haven't mastered yet!
-                </p>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={() => {
-                    setSessionStarted(true)
-                    setStartTime(Date.now())
-                  }}
-                  className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                  size="lg"
-                >
-                  Start Practice
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="min-h-screen bg-background">
+        <SessionNavigationHeader
+          userName={displayName}
+          onLogout={handleLogout}
+          onExitSession={handleExitSession}
+        />
+        <div className="flex items-center justify-center pt-20">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-center">Ready to Practice?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-center text-muted-foreground">
+                You'll practice multiplication problems to improve your skills.
+              </p>
+              <Button
+                onClick={() => {
+                  setSessionStarted(true)
+                  setStartTime(Date.now())
+                }}
+                className="w-full"
+                size="lg"
+              >
+                Start Practice
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
@@ -150,57 +168,48 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
 
   if (!currentProblem) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading next problem...</p>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Loading next problem...</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Navigation Header */}
-        <SessionNavigationHeader 
-          onLogout={handleLogout} 
-          onExitSession={handleExitSession}
-          userName={displayName}
-        />
+  const masteryPercentage = getGuardrailMasteryPercentage()
 
-        {/* Session Info Header (Timer hidden, analytics still track in background) */}
-        <div className="mb-6">
-          <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/20 w-10 h-10 rounded-full flex items-center justify-center">
-                    <Target className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Problem {problemIndex + 1}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="bg-secondary/20 w-10 h-10 rounded-full flex items-center justify-center">
-                    <Trophy className="h-5 w-5 text-secondary" />
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {getGuardrailMasteryPercentage()}% mastered
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+  return (
+    <div className="min-h-screen bg-background">
+      <SessionNavigationHeader
+        userName={displayName}
+        onLogout={handleLogout}
+        onExitSession={handleExitSession}
+      />
+      
+      <div className="container mx-auto px-4 py-8 pt-20">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            <span className="text-sm font-medium">
+              Problem {problemIndex + 1} of {sessionState?.problemQueue.length || 0}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            <span className="text-sm font-medium">
+              Mastery: {masteryPercentage}%
+            </span>
+          </div>
         </div>
 
-        {/* Problem Component */}
-        <MathProblem
+        <UnifiedMathQuestion
           problem={currentProblem}
-          onAnswer={handleAnswer}
-          onComplete={handleProblemComplete}
-          isLastProblem={sessionState ? sessionState.currentProblemIndex >= sessionState.problemQueue.length - 1 : false}
+          onSubmitAnswer={handleSubmitAnswer}
+          showFeedback={showFeedback}
+          feedbackResult={feedbackResult}
+          disabled={isSubmitting}
         />
       </div>
     </div>
