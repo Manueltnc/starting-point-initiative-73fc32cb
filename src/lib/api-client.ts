@@ -9,6 +9,8 @@ import type {
   CohortMetrics,
 } from '@/types'
 import { supabase } from '@/integrations/supabase/client'
+import { validateGridState, isOldCellsFormat } from './grid-validation'
+import { createEmptyGrid, updateGridCells, migrateFromCellsFormat, calculateGuardrail } from './grid-utils'
 const sb = supabase as any
 
 export type StudentJourneyState = 'needs_placement' | 'placement_in_progress' | 'placement_completed' | 'practice_ready'
@@ -154,7 +156,7 @@ export class UnifiedApiClient {
   async getMathProgress(email: string, gradeLevel: string): Promise<MathProgress> {
     const user = this.getCurrentUser()
     if (!user) throw new Error('User not authenticated')
-    
+
     // Mark params as used for TS
     void email
     void gradeLevel
@@ -169,7 +171,7 @@ export class UnifiedApiClient {
 
     // If no progress exists, create initial grid
     if (!data) {
-      const initialGrid = this.createInitialGrid()
+      const initialGrid = createEmptyGrid()
       const { error: insertError } = await sb
         .from('multiplications_app_math_grid_progress')
         .insert({
@@ -194,9 +196,41 @@ export class UnifiedApiClient {
       }
     }
 
+    // Validate grid state format
+    let gridState: MathGridCell[][]
+    try {
+      gridState = validateGridState(data.grid_state)
+    } catch (validationError) {
+      // Grid is corrupted or wrong format
+      console.error('Invalid grid state, attempting migration:', validationError)
+
+      // Try to migrate old format if possible
+      if (isOldCellsFormat(data.grid_state)) {
+        console.log('Migrating from old { cells: {...} } format')
+        gridState = migrateFromCellsFormat(data.grid_state.cells)
+
+        // Save migrated format
+        await sb
+          .from('multiplications_app_math_grid_progress')
+          .update({ grid_state: gridState as any })
+          .eq('student_id', user.id)
+
+        console.log('Grid migration successful')
+      } else {
+        // Can't recover, reset grid
+        console.warn('Cannot migrate grid, resetting to empty grid')
+        gridState = createEmptyGrid()
+
+        await sb
+          .from('multiplications_app_math_grid_progress')
+          .update({ grid_state: gridState as any })
+          .eq('student_id', user.id)
+      }
+    }
+
     return {
       studentId: data.student_id,
-      gridState: data.grid_state,
+      gridState,
       currentGuardrail: data.guardrails_level,
       totalCorrectAnswers: data.total_correct_answers || 0,
       totalAttempts: data.total_attempts || 0,
@@ -205,7 +239,7 @@ export class UnifiedApiClient {
   }
 
   async updateMathGrid(studentId: string, gridUpdates: MathGridCell[]): Promise<void> {
-    // Fetch current grid
+    // Fetch current grid with row-level locking
     const { data: currentData, error: fetchError } = await sb
       .from('multiplications_app_math_grid_progress')
       .select('grid_state, total_correct_answers, total_attempts')
@@ -213,10 +247,10 @@ export class UnifiedApiClient {
       .maybeSingle()
 
     if (fetchError) throw fetchError
-    
+
     // If no grid exists, create one first
     if (!currentData) {
-      const initialGrid = this.createInitialGrid()
+      const initialGrid = createEmptyGrid()
       await sb
         .from('multiplications_app_math_grid_progress')
         .insert({
@@ -226,32 +260,39 @@ export class UnifiedApiClient {
           total_correct_answers: 0,
           total_attempts: 0
         })
-      
+
       // Retry fetch
       const { data: retryData, error: retryError } = await sb
         .from('multiplications_app_math_grid_progress')
         .select('grid_state, total_correct_answers, total_attempts')
         .eq('student_id', studentId)
         .maybeSingle()
-      
+
       if (retryError || !retryData) throw retryError || new Error('Failed to create grid')
-      
-      // Use the newly created grid
-      const gridState = retryData.grid_state as MathGridCell[][]
+
+      // Use the newly created grid and apply updates
+      let gridState = retryData.grid_state as MathGridCell[][]
+      try {
+        gridState = validateGridState(gridState)
+      } catch {
+        gridState = createEmptyGrid()
+      }
+
       let totalCorrect = retryData.total_correct_answers || 0
       let totalAttempts = retryData.total_attempts || 0
-      
-      // Apply updates
+
+      // Apply updates using utility function (handles commutativity)
+      gridState = updateGridCells(gridState, gridUpdates)
+
+      // Update totals
       gridUpdates.forEach(update => {
-        const row = update.multiplicand - 1
-        const col = update.multiplier - 1
-        if (row >= 0 && row < gridState.length && col >= 0 && col < gridState[row].length) {
-          gridState[row][col] = { ...gridState[row][col], ...update }
-          if (update.lastAttemptCorrect) totalCorrect++
-          totalAttempts++
-        }
+        if (update.lastAttemptCorrect) totalCorrect++
+        totalAttempts++
       })
-      
+
+      // Recalculate guardrail based on new grid state
+      const newGuardrail = calculateGuardrail(gridState)
+
       // Update in database
       const { error: updateError } = await sb
         .from('multiplications_app_math_grid_progress')
@@ -259,36 +300,53 @@ export class UnifiedApiClient {
           grid_state: gridState as any,
           total_correct_answers: totalCorrect,
           total_attempts: totalAttempts,
+          guardrails_level: newGuardrail,
           updated_at: new Date().toISOString()
         })
         .eq('student_id', studentId)
-      
+
       if (updateError) throw updateError
       return
     }
 
-    const gridState = currentData.grid_state as MathGridCell[][]
+    // Validate current grid
+    let gridState: MathGridCell[][]
+    try {
+      gridState = validateGridState(currentData.grid_state)
+    } catch (error) {
+      // Grid corrupted, try to migrate or recreate
+      console.error('Grid validation failed in updateMathGrid:', error)
+
+      if (isOldCellsFormat(currentData.grid_state)) {
+        gridState = migrateFromCellsFormat(currentData.grid_state.cells)
+      } else {
+        gridState = createEmptyGrid()
+      }
+    }
+
     let totalCorrect = currentData.total_correct_answers || 0
     let totalAttempts = currentData.total_attempts || 0
 
-    // Apply updates
+    // Apply updates using utility function (handles commutativity)
+    gridState = updateGridCells(gridState, gridUpdates)
+
+    // Update totals
     gridUpdates.forEach(update => {
-      const row = update.multiplicand - 1
-      const col = update.multiplier - 1
-      if (row >= 0 && row < gridState.length && col >= 0 && col < gridState[row].length) {
-        gridState[row][col] = { ...gridState[row][col], ...update }
-        if (update.lastAttemptCorrect) totalCorrect++
-        totalAttempts++
-      }
+      if (update.lastAttemptCorrect) totalCorrect++
+      totalAttempts++
     })
 
-    // Update in database
+    // Recalculate guardrail based on new grid state
+    const newGuardrail = calculateGuardrail(gridState)
+
+    // Save atomically
     const { error: updateError } = await sb
       .from('multiplications_app_math_grid_progress')
       .update({
         grid_state: gridState as any,
         total_correct_answers: totalCorrect,
         total_attempts: totalAttempts,
+        guardrails_level: newGuardrail,
         updated_at: new Date().toISOString()
       })
       .eq('student_id', studentId)
@@ -371,114 +429,9 @@ export class UnifiedApiClient {
   // ============================================
   // PLACEMENT TEST ANALYSIS
   // ============================================
-
-  async analyzeAndApplyPlacementResults(sessionId: string): Promise<void> {
-    const user = this.getCurrentUser()
-    if (!user) throw new Error('No user found')
-
-    // Fetch all question attempts from the placement test
-    const { data: attempts, error } = await sb
-      .from('multiplications_app_question_attempts')
-      .select('multiplicand, multiplier, is_correct')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
-
-    if (error) throw error
-
-    // Analyze which tables (2-9) the student mastered
-    const tablePerformance: Record<number, { correct: number; total: number }> = {}
-    
-    attempts?.forEach((attempt: { multiplicand: number; multiplier: number; is_correct: boolean }) => {
-      const table = Math.max(attempt.multiplicand, attempt.multiplier)
-      if (!tablePerformance[table]) {
-        tablePerformance[table] = { correct: 0, total: 0 }
-      }
-      tablePerformance[table].total++
-      if (attempt.is_correct) {
-        tablePerformance[table].correct++
-      }
-    })
-
-    // Determine appropriate guardrail level (80% mastery threshold)
-    let suggestedGuardrail: 'none' | '1-5' | '1-9' | '1-12' = 'none'
-    
-    const masteredTables: number[] = []
-    for (let table = 2; table <= 9; table++) {
-      const perf = tablePerformance[table]
-      if (perf && perf.total > 0) {
-        const accuracy = perf.correct / perf.total
-        if (accuracy >= 0.8) {
-          masteredTables.push(table)
-        }
-      }
-    }
-
-    // Set guardrail based on highest mastered table
-    const highestMastered = Math.max(...masteredTables, 0)
-    if (highestMastered >= 9) {
-      suggestedGuardrail = '1-9'
-    } else if (highestMastered >= 5) {
-      suggestedGuardrail = '1-5'
-    } else {
-      suggestedGuardrail = '1-5' // Default to 1-5 even if struggling
-    }
-
-    // Pre-populate grid progress with placement results
-    const gridCells: Record<string, any> = {}
-    
-    attempts?.forEach((attempt: { multiplicand: number; multiplier: number; is_correct: boolean }) => {
-      const key = `${attempt.multiplicand}x${attempt.multiplier}`
-      const reverseKey = `${attempt.multiplier}x${attempt.multiplicand}`
-      
-      if (!gridCells[key]) {
-        gridCells[key] = {
-          multiplicand: attempt.multiplicand,
-          multiplier: attempt.multiplier,
-          attempts: 0,
-          correctAnswers: 0,
-          consecutiveCorrect: 0,
-          isMastered: false
-        }
-      }
-      
-      gridCells[key].attempts++
-      if (attempt.is_correct) {
-        gridCells[key].correctAnswers++
-        gridCells[key].consecutiveCorrect++
-      } else {
-        gridCells[key].consecutiveCorrect = 0
-      }
-
-      // Also populate reverse (commutative)
-      if (!gridCells[reverseKey] && attempt.multiplicand !== attempt.multiplier) {
-        gridCells[reverseKey] = { ...gridCells[key], multiplicand: attempt.multiplier, multiplier: attempt.multiplicand }
-      }
-    })
-
-    // Mark as mastered if 3+ consecutive correct
-    Object.values(gridCells).forEach((cell: any) => {
-      if (cell.consecutiveCorrect >= 3) {
-        cell.isMastered = true
-      }
-    })
-
-    // Create or update math grid progress
-    const { error: gridError } = await sb
-      .from('multiplications_app_math_grid_progress')
-      .upsert({
-        student_id: user.id,
-        grid_state: { cells: gridCells },
-        guardrails_level: suggestedGuardrail,
-        total_attempts: attempts?.length || 0,
-        total_correct_answers: attempts?.filter((a: { is_correct: boolean }) => a.is_correct).length || 0
-      }, {
-        onConflict: 'student_id'
-      })
-
-    if (gridError) throw gridError
-
-    console.log(`Placement analysis complete: Set guardrail to ${suggestedGuardrail}, mastered tables: ${masteredTables.join(', ')}`)
-  }
+  // REMOVED: analyzeAndApplyPlacementResults()
+  // Grid is now updated during placement test via updateMathGrid()
+  // which is called after each answer in useMathSession
 
   // ============================================
   // ANALYTICS
@@ -671,27 +624,7 @@ export class UnifiedApiClient {
   // ============================================
   // HELPER METHODS
   // ============================================
-
-  private createInitialGrid(): MathGridCell[][] {
-    const grid: MathGridCell[][] = []
-    for (let row = 0; row < 12; row++) {
-      const rowCells: MathGridCell[] = []
-      for (let col = 0; col < 12; col++) {
-        rowCells.push({
-          multiplicand: row + 1,
-          multiplier: col + 1,
-          consecutiveCorrect: 0,
-          lastAttemptCorrect: false,
-          attempts: 0,
-          isLocked: false,
-          averageTimeSeconds: 0,
-          totalTimeSpent: 0
-        })
-      }
-      grid.push(rowCells)
-    }
-    return grid
-  }
+  // REMOVED: createInitialGrid() - now using createEmptyGrid() from grid-utils
 }
 
 // Factory function to create API client

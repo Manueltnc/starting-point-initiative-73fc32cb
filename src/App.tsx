@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { LoginPage } from '@/pages/Login'
@@ -11,6 +12,7 @@ import { PracticeActive } from '@/pages/PracticeActive'
 import { SessionResults } from '@/pages/SessionResults'
 import { PracticeGuard } from '@/components/guards/PracticeGuard'
 import { Loader2 } from 'lucide-react'
+import { checkAndRunMigrations } from '@/lib/migrations'
 
 function StudentRoutes() {
   const { identity, loading, clearIdentity } = useStudentIdentity()
@@ -109,6 +111,20 @@ function AdminRoutes() {
 }
 
 function App() {
+  // Run data migrations on app startup
+  useEffect(() => {
+    const runMigrations = async () => {
+      try {
+        await checkAndRunMigrations()
+      } catch (error) {
+        console.error('Migration check failed:', error)
+        // Don't block app startup even if migration fails
+      }
+    }
+
+    runMigrations()
+  }, [])
+
   return (
     <Router>
       <Routes>
