@@ -100,7 +100,9 @@ export class UnifiedApiClient {
         fast_answers_count: updates.fastAnswersCount,
         medium_answers_count: updates.mediumAnswersCount,
         slow_answers_count: updates.slowAnswersCount,
-        last_activity_at: new Date().toISOString()
+        // CRITICAL: Always update last_activity_at to prevent session abandonment
+        last_activity_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .eq('id', sessionId)
 
