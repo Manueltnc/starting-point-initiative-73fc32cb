@@ -16,7 +16,7 @@ import type { MathProblem as MathProblemType } from '@/types'
 interface PracticeGridProps {
   email: string
   gradeLevel: string
-  onComplete: () => void
+  onComplete: (results?: any) => void
 }
 
 export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
@@ -83,7 +83,24 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
 
   const handleSessionComplete = async () => {
     await completeSession()
-    onComplete()
+
+    // Calculate session metrics for results display
+    const { calculateSessionMetrics } = await import('@/lib/session-analytics')
+    const metrics = sessionState ? calculateSessionMetrics(sessionState) : {
+      itemsAttempted: 0,
+      itemsCorrect: 0,
+      accuracy: 0
+    }
+
+    const results = {
+      sessionId: sessionState?.sessionId,
+      totalProblems: metrics.itemsAttempted,
+      correctAnswers: metrics.itemsCorrect,
+      accuracy: metrics.accuracy,
+      timestamp: new Date().toISOString()
+    }
+
+    onComplete(results)
   }
 
   const handleSubmitAnswer = async (answer: number, timeSpent: number) => {

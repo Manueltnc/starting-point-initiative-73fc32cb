@@ -19,6 +19,7 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
   const { refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
   const [mode, setMode] = useState<'placement' | 'practice' | 'results' | null>(null)
   const [placementResults, setPlacementResults] = useState<any>(null)
+  const [practiceResults, setPracticeResults] = useState<any>(null)
 
   const handleLogout = () => {
     clearIdentity()
@@ -54,16 +55,25 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
     await refreshJourneyState()
   }
 
-  const handlePracticeComplete = () => {
+  const handlePracticeComplete = async (results: any) => {
+    setPracticeResults(results)
     setMode('results')
+    // Refresh journey state in case practice affected any stats
+    await refreshJourneyState()
   }
 
   const handleStartPractice = () => {
+    // Clear previous results before starting new session
+    setPlacementResults(null)
+    setPracticeResults(null)
     // Simply set mode to practice - let useEffect handle state synchronization
     setMode('practice')
   }
 
   const handleStartPlacement = () => {
+    // Clear previous results before starting new session
+    setPlacementResults(null)
+    setPracticeResults(null)
     setMode('placement')
   }
 
@@ -136,9 +146,9 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
         email={identity.email}
         gradeLevel={identity.metadata?.grade_level || '3'}
         onComplete={handlePlacementComplete}
-        onJourneyStateChange={() => {
+        onJourneyStateChange={async () => {
           // Refresh the parent's journey state when placement completes
-          window.location.reload() // Simple refresh for now
+          await refreshJourneyState()
         }}
       />
     )
@@ -154,7 +164,11 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
     )
   }
 
-  if (mode === 'results' && placementResults) {
+  // Results screen for both placement and practice sessions
+  if (mode === 'results' && (placementResults || practiceResults)) {
+    const results = placementResults || practiceResults
+    const isPlacement = !!placementResults
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
         <div className="max-w-4xl mx-auto">
@@ -162,7 +176,9 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
 
           <Card className="backdrop-blur-sm bg-white/80 border-white/20">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold text-primary">Placement Test Complete!</CardTitle>
+              <CardTitle className="text-2xl font-bold text-primary">
+                {isPlacement ? 'Placement Test Complete!' : 'Practice Session Complete!'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -171,33 +187,43 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
                     <Target className="h-5 w-5 text-blue-500" />
                     <span className="text-sm font-medium text-muted-foreground">Problems Attempted</span>
                   </div>
-                  <p className="text-3xl font-bold text-primary">{placementResults.totalProblems}</p>
+                  <p className="text-3xl font-bold text-primary">{results.totalProblems}</p>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Trophy className="h-5 w-5 text-green-500" />
                     <span className="text-sm font-medium text-muted-foreground">Correct Answers</span>
                   </div>
-                  <p className="text-3xl font-bold text-primary">{placementResults.correctAnswers}</p>
+                  <p className="text-3xl font-bold text-primary">{results.correctAnswers}</p>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Clock className="h-5 w-5 text-purple-500" />
                     <span className="text-sm font-medium text-muted-foreground">Accuracy</span>
                   </div>
-                  <p className="text-3xl font-bold text-primary">{placementResults.accuracy}%</p>
+                  <p className="text-3xl font-bold text-primary">{results.accuracy}%</p>
                 </div>
               </div>
 
               <div className="text-center space-y-4">
                 <p className="text-muted-foreground">
-                  Great job! Your placement test is complete. You can now start practicing multiplication problems.
+                  {isPlacement
+                    ? 'Great job! Your placement test is complete. You can now start practicing multiplication problems.'
+                    : 'Awesome work! Keep practicing to master more multiplication facts.'}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button onClick={handleStartPractice} size="lg">
-                    <Target className="h-4 w-4 mr-2" />
-                    Start Practice Session
-                  </Button>
+                  {isPlacement && (
+                    <Button onClick={handleStartPractice} size="lg">
+                      <Target className="h-4 w-4 mr-2" />
+                      Start Practice Session
+                    </Button>
+                  )}
+                  {!isPlacement && (
+                    <Button onClick={handleStartPractice} size="lg">
+                      <Target className="h-4 w-4 mr-2" />
+                      Practice Again
+                    </Button>
+                  )}
                   <Button onClick={onBack} variant="outline" size="lg">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Home
@@ -211,45 +237,22 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
     )
   }
 
-  // Default mode selection
+  // If we reach here, no mode is set and we should redirect to dashboard
+  // This happens when accessing /practice directly without a desiredMode
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <div className="max-w-4xl mx-auto">
         <AppHeader onLogout={handleLogout} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="backdrop-blur-sm bg-white/80 border-white/20 hover:bg-white/90 transition-colors">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                Placement Test
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+        <div className="flex items-center justify-center">
+          <Card className="w-full max-w-md backdrop-blur-sm bg-white/80 border-white/20">
+            <CardContent className="p-6 text-center">
               <p className="text-muted-foreground mb-4">
-                Take a placement test to determine your starting level. This helps us create your personalized learning path.
+                Please start your practice session from the dashboard.
               </p>
-              <Button onClick={handleStartPlacement} className="w-full">
-                <Target className="h-4 w-4 mr-2" />
-                Start Placement Test
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="backdrop-blur-sm bg-white/80 border-white/20 hover:bg-white/90 transition-colors">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-primary" />
-                Practice Session
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Practice multiplication problems for up to 10 minutes. Focus on problems you haven't mastered yet!
-              </p>
-              <Button onClick={handleStartPractice} className="w-full">
-                <Trophy className="h-4 w-4 mr-2" />
-                Start Practice
+              <Button onClick={onBack} className="w-full">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Go to Dashboard
               </Button>
             </CardContent>
           </Card>
