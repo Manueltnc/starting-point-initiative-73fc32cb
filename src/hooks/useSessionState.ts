@@ -200,15 +200,12 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
       // Mark session as completed
       await apiClient.completeSession(sessionState.sessionId)
 
-      // Only update math grid progress for practice sessions, NOT placement tests
-      if (sessionState.sessionType === 'practice' && sessionState.gridUpdates.length > 0) {
-        // Get current identity for correct studentId
-        if (identity) {
-          await apiClient.updateMathGrid(
-            identity.id, // Use correct studentId, not sessionId
-            sessionState.gridUpdates
-          )
-        }
+      // Always update math grid progress with gridUpdates
+      if (sessionState.gridUpdates.length > 0 && identity) {
+        await apiClient.updateMathGrid(
+          identity.id,
+          sessionState.gridUpdates
+        )
       }
     } catch (err) {
       console.error('Failed to complete session:', err)
