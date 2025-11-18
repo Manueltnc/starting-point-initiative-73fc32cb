@@ -44,7 +44,8 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   }
 
   const handleExitSession = async () => {
-    await completeSession()
+    // Don't mark as complete if test isn't finished
+    // Just navigate away - session will be marked as abandoned by background job
     navigate('/')
   }
 
@@ -71,6 +72,17 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   const handleSessionComplete = async () => {
     try {
       await completeSession()
+      
+      // Analyze placement test results and set guardrails
+      if (sessionState?.sessionId) {
+        try {
+          const { createApiClient } = await import('@/lib/api-client')
+          const apiClient = createApiClient()
+          await apiClient.analyzeAndApplyPlacementResults(sessionState.sessionId)
+        } catch (error) {
+          console.error('Failed to analyze placement results:', error)
+        }
+      }
       
       if (onJourneyStateChange) {
         onJourneyStateChange()

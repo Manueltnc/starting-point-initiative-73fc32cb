@@ -333,18 +333,23 @@ export class UnifiedApiClient {
 
     const { data: sessions, error } = await sb
       .from('multiplications_app_learning_sessions')
-      .select('session_type, status')
+      .select('session_type, status, completed_items, total_items')
       .eq('student_id', user.id)
       .eq('app_type', 'math')
       .order('created_at', { ascending: false })
 
     if (error) return 'needs_placement'
 
-    type SessionRow = { session_type: string; status: string }
+    type SessionRow = { session_type: string; status: string; completed_items: number | null; total_items: number | null }
     const rows: SessionRow[] = (sessions || []) as SessionRow[]
 
+    // FIX: Verify placement was actually completed (all items finished)
     const completedPlacement = rows.some(
-      (s: SessionRow) => s.session_type === 'placement' && s.status === 'completed'
+      (s: SessionRow) => 
+        s.session_type === 'placement' && 
+        s.status === 'completed' &&
+        (s.completed_items || 0) >= (s.total_items || 0) &&
+        (s.total_items || 0) > 0
     )
 
     if (completedPlacement) return 'placement_completed'
@@ -356,6 +361,118 @@ export class UnifiedApiClient {
     if (inProgressPlacement) return 'placement_in_progress'
 
     return 'needs_placement'
+  }
+
+  // ============================================
+  // PLACEMENT TEST ANALYSIS
+  // ============================================
+
+  async analyzeAndApplyPlacementResults(sessionId: string): Promise<void> {
+    const user = this.getCurrentUser()
+    if (!user) throw new Error('No user found')
+
+    // Fetch all question attempts from the placement test
+    const { data: attempts, error } = await sb
+      .from('multiplications_app_question_attempts')
+      .select('multiplicand, multiplier, is_correct')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true })
+
+    if (error) throw error
+
+    // Analyze which tables (2-9) the student mastered
+    const tablePerformance: Record<number, { correct: number; total: number }> = {}
+    
+    attempts?.forEach((attempt: { multiplicand: number; multiplier: number; is_correct: boolean }) => {
+      const table = Math.max(attempt.multiplicand, attempt.multiplier)
+      if (!tablePerformance[table]) {
+        tablePerformance[table] = { correct: 0, total: 0 }
+      }
+      tablePerformance[table].total++
+      if (attempt.is_correct) {
+        tablePerformance[table].correct++
+      }
+    })
+
+    // Determine appropriate guardrail level (80% mastery threshold)
+    let suggestedGuardrail: 'none' | '1-5' | '1-9' | '1-12' = 'none'
+    
+    const masteredTables: number[] = []
+    for (let table = 2; table <= 9; table++) {
+      const perf = tablePerformance[table]
+      if (perf && perf.total > 0) {
+        const accuracy = perf.correct / perf.total
+        if (accuracy >= 0.8) {
+          masteredTables.push(table)
+        }
+      }
+    }
+
+    // Set guardrail based on highest mastered table
+    const highestMastered = Math.max(...masteredTables, 0)
+    if (highestMastered >= 9) {
+      suggestedGuardrail = '1-9'
+    } else if (highestMastered >= 5) {
+      suggestedGuardrail = '1-5'
+    } else {
+      suggestedGuardrail = '1-5' // Default to 1-5 even if struggling
+    }
+
+    // Pre-populate grid progress with placement results
+    const gridCells: Record<string, any> = {}
+    
+    attempts?.forEach((attempt: { multiplicand: number; multiplier: number; is_correct: boolean }) => {
+      const key = `${attempt.multiplicand}x${attempt.multiplier}`
+      const reverseKey = `${attempt.multiplier}x${attempt.multiplicand}`
+      
+      if (!gridCells[key]) {
+        gridCells[key] = {
+          multiplicand: attempt.multiplicand,
+          multiplier: attempt.multiplier,
+          attempts: 0,
+          correctAnswers: 0,
+          consecutiveCorrect: 0,
+          isMastered: false
+        }
+      }
+      
+      gridCells[key].attempts++
+      if (attempt.is_correct) {
+        gridCells[key].correctAnswers++
+        gridCells[key].consecutiveCorrect++
+      } else {
+        gridCells[key].consecutiveCorrect = 0
+      }
+
+      // Also populate reverse (commutative)
+      if (!gridCells[reverseKey] && attempt.multiplicand !== attempt.multiplier) {
+        gridCells[reverseKey] = { ...gridCells[key], multiplicand: attempt.multiplier, multiplier: attempt.multiplicand }
+      }
+    })
+
+    // Mark as mastered if 3+ consecutive correct
+    Object.values(gridCells).forEach((cell: any) => {
+      if (cell.consecutiveCorrect >= 3) {
+        cell.isMastered = true
+      }
+    })
+
+    // Create or update math grid progress
+    const { error: gridError } = await sb
+      .from('multiplications_app_math_grid_progress')
+      .upsert({
+        student_id: user.id,
+        grid_state: { cells: gridCells },
+        guardrails_level: suggestedGuardrail,
+        total_attempts: attempts?.length || 0,
+        total_correct_answers: attempts?.filter((a: { is_correct: boolean }) => a.is_correct).length || 0
+      }, {
+        onConflict: 'student_id'
+      })
+
+    if (gridError) throw gridError
+
+    console.log(`Placement analysis complete: Set guardrail to ${suggestedGuardrail}, mastered tables: ${masteredTables.join(', ')}`)
   }
 
   // ============================================
