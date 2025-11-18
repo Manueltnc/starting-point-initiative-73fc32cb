@@ -40,8 +40,8 @@ export function SessionNavigationHeader({
   return (
     <>
       <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b z-50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between max-w-7xl">
-          <div className="flex items-center gap-2">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-center max-w-7xl relative">
+          <div className="absolute left-4 flex items-center gap-2">
             <img
               src="https://gckzqfnwfveskxkhbrrl.supabase.co/storage/v1/object/public/learning_boltz/4.svg"
               alt="Logo"
