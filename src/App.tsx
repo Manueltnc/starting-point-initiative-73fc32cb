@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { LoginPage } from '@/pages/Login'
 import { StudentHome } from '@/pages/StudentHome'
-import { PracticePage } from '@/pages/Practice'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 import { ProgressGrid } from '@/components/student/ProgressGrid'
 import { Loader2 } from 'lucide-react'
@@ -12,7 +10,6 @@ function StudentRoutes() {
   const { identity, loading, clearIdentity } = useStudentIdentity()
   const navigate = useNavigate()
   const location = useLocation()
-  const [desiredMode, setDesiredMode] = useState<'practice' | 'placement' | undefined>(undefined)
 
   if (loading) {
     return (
@@ -36,20 +33,7 @@ function StudentRoutes() {
 
   const currentPath = location.pathname
 
-  if (currentPath === '/practice') {
-    return (
-      <PracticePage
-        onBack={() => {
-          setDesiredMode(undefined)
-          navigate('/')
-        }}
-        autoStart={true}
-        desiredMode={desiredMode}
-        key="practice-page"
-      />
-    )
-  }
-
+  // Progress Grid route (separate full-page view)
   if (currentPath === '/progress') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
@@ -71,20 +55,8 @@ function StudentRoutes() {
     )
   }
 
-  return (
-    <StudentHome
-      onStartPlacement={(mode) => {
-        setDesiredMode(mode)
-        navigate('/practice')
-      }}
-      onStartPractice={(mode) => {
-        setDesiredMode(mode)
-        navigate('/practice')
-      }}
-      onViewProgress={() => navigate('/progress')}
-      onLogout={handleLogout}
-    />
-  )
+  // Main dashboard - handles all student navigation via state
+  return <StudentHome onLogout={handleLogout} />
 }
 
 function App() {
