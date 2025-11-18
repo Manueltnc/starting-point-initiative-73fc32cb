@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
+import { SessionProgressHeader } from './SessionProgressHeader'
+import { PauseModal } from './PauseModal'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { UnifiedMathQuestion } from './UnifiedMathQuestion'
@@ -36,7 +38,21 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const [sessionStartTime] = useState(Date.now())
+  const [timeElapsed, setTimeElapsed] = useState(0)
   const displayName = capitalizeName(email.split('@')[0])
+
+  // Track time elapsed
+  useEffect(() => {
+    if (!sessionStarted || isPaused) return
+
+    const interval = setInterval(() => {
+      setTimeElapsed(Math.floor((Date.now() - sessionStartTime) / 1000))
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [sessionStarted, isPaused, sessionStartTime])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -215,14 +231,28 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     )
   }
 
+  const correctAnswers = sessionState?.gridUpdates.filter(g => g.lastAttemptCorrect).length || 0
+
   return (
-    <div className="min-h-screen bg-background pt-16">
+    <div className="min-h-screen bg-background">
       <SessionNavigationHeader
         userName={displayName}
         onLogout={handleLogout}
         onExitSession={handleExitSession}
       />
-      
+
+      {/* Progress Header */}
+      {sessionState && (
+        <SessionProgressHeader
+          currentProblem={sessionState.currentProblemIndex}
+          totalProblems={sessionState.problemQueue.length}
+          correctAnswers={correctAnswers}
+          currentStreak={consecutiveCorrect}
+          timeElapsed={timeElapsed}
+          onPause={() => setIsPaused(true)}
+        />
+      )}
+
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <UnifiedMathQuestion
           problem={currentProblem}
@@ -230,8 +260,29 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
           showFeedback={showFeedback}
           feedbackResult={feedbackResult}
           disabled={isSubmitting}
+          feedbackContext={{
+            streak: consecutiveCorrect,
+            difficulty: currentProblem.difficulty,
+            problemsCompleted: sessionState?.currentProblemIndex || 0,
+            attempts: 1, // Could track this per problem in the future
+            timeSpent: timeElapsed,
+            multiplicand: currentProblem.multiplicand,
+            multiplier: currentProblem.multiplier
+          }}
         />
       </div>
+
+      {/* Pause Modal */}
+      {isPaused && sessionState && (
+        <PauseModal
+          currentProblem={sessionState.currentProblemIndex}
+          totalProblems={sessionState.problemQueue.length}
+          timeElapsed={timeElapsed}
+          correctAnswers={correctAnswers}
+          onResume={() => setIsPaused(false)}
+          onExit={handleExitSession}
+        />
+      )}
     </div>
   )
 }
