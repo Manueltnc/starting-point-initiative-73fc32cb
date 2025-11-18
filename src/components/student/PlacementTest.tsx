@@ -191,25 +191,25 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     : 0
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-16">
       <SessionNavigationHeader
         userName={displayName}
         onLogout={handleLogout}
         onExitSession={handleExitSession}
       />
       
-      <div className="container mx-auto px-4 py-8 pt-24 max-w-5xl">
-        <div className="mb-12 bg-white/50 backdrop-blur-sm rounded-xl p-6 shadow-sm">
-          <div className="max-w-3xl mx-auto">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="mb-6">
+          <div className="max-w-2xl mx-auto px-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="text-sm font-medium">
                 Question {sessionState ? sessionState.currentProblemIndex + 1 : 0} of {sessionState?.problemQueue.length || 0}
               </span>
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="text-sm font-medium">
                 {Math.round(progress)}% Complete
               </span>
             </div>
-            <Progress value={progress} className="h-3" />
+            <Progress value={progress} className="h-2" />
           </div>
         </div>
 
