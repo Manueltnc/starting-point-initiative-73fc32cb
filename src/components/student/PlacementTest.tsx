@@ -71,6 +71,11 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
   const handleSessionComplete = async () => {
     try {
+      // Calculate results from sessionState before completing
+      const totalProblems = sessionState?.problemQueue.length || 0
+      const correctCount = sessionState?.gridUpdates.filter(u => u.lastAttemptCorrect).length || 0
+      const accuracy = totalProblems > 0 ? Math.round((correctCount / totalProblems) * 100) : 0
+
       await completeSession()
       
       // Analyze placement test results and set guardrails
@@ -90,7 +95,9 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
       const results = {
         sessionId: sessionState?.sessionId,
-        totalProblems: sessionState?.problemQueue.length || 0,
+        totalProblems,
+        correctAnswers: correctCount,
+        accuracy,
         timestamp: new Date().toISOString()
       }
 

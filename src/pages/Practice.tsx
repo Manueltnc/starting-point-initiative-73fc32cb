@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
 import { PlacementTest } from '@/components/student/PlacementTest'
@@ -10,13 +10,12 @@ import { Trophy, Target, Clock, ArrowLeft } from 'lucide-react'
 
 interface PracticePageProps {
   onBack: () => void
-  autoStart?: boolean
   desiredMode?: 'practice' | 'placement'
 }
 
-export function PracticePage({ onBack, autoStart = false, desiredMode }: PracticePageProps) {
+export function PracticePage({ onBack, desiredMode }: PracticePageProps) {
   const { identity, clearIdentity } = useStudentIdentity()
-  const { refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
+  const { refreshJourneyState, needsPlacement, loading: journeyLoading } = useStudentJourney()
   const [mode, setMode] = useState<'placement' | 'practice' | 'results' | null>(null)
   const [placementResults, setPlacementResults] = useState<any>(null)
 
@@ -25,27 +24,8 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
     window.location.href = '/'
   }
 
-  // Deterministic mode resolution based on desiredMode and journey state
-  useEffect(() => {
-    if (autoStart && identity?.email && !mode && !journeyLoading) {
-      if (desiredMode === 'practice') {
-        if (canStartPractice) {
-          setMode('practice')
-        } else if (needsPlacement) {
-          // Don't set mode yet - will show gate screen
-        }
-      } else if (desiredMode === 'placement') {
-        setMode('placement')
-      } else {
-        // Legacy auto-resolution when no desiredMode specified
-        if (needsPlacement) {
-          setMode('placement')
-        } else if (canStartPractice) {
-          setMode('practice')
-        }
-      }
-    }
-  }, [autoStart, identity?.email, mode, needsPlacement, canStartPractice, desiredMode, journeyLoading])
+  // Remove auto-start behavior - Practice page should show confirmation screens
+  // Mode is now only set when user explicitly clicks Start buttons
 
   const handlePlacementComplete = async (results: any) => {
     setPlacementResults(results)
