@@ -52,7 +52,7 @@ export function EquationDisplay({
   if (variant === 'vertical') {
     return (
       <div className={cn(
-        'font-sans text-center leading-tight inline-block',
+        'font-fredoka text-center leading-tight inline-block font-semibold',
         sizeClasses[size],
         className
       )}>
@@ -66,7 +66,7 @@ export function EquationDisplay({
           <span>{multiplier}</span>
         </div>
         
-        <div className={cn('border-gray-400 mt-1 mb-1', lineWidthClasses[size])}></div>
+        <div className={cn('border-primary/40 mt-1 mb-1', lineWidthClasses[size])}></div>
         
         {showAnswer && answer !== undefined ? (
           <div className="text-right pr-2">
@@ -84,7 +84,7 @@ export function EquationDisplay({
   // Horizontal format (default)
   return (
     <div className={cn(
-      'font-sans text-center flex items-center justify-center',
+      'font-fredoka text-center flex items-center justify-center font-semibold',
       sizeClasses[size],
       spacingClasses[size],
       className
