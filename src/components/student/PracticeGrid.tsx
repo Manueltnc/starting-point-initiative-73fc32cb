@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AppHeader } from '@/components/ui/AppHeader'
+import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { MathProblem } from './MathProblem'
 import { PRACTICE_CONFIG } from '@/lib/config'
 import { supabase } from '@/integrations/supabase/client'
-import { Target, Trophy, ArrowLeft } from 'lucide-react'
+import { capitalizeName } from '@/lib/utils'
+import { Target, Trophy } from 'lucide-react'
 import type { MathProblem as MathProblemType } from '@/types'
 
 interface PracticeGridProps {
@@ -25,6 +26,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const [sessionStarted, setSessionStarted] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
   const [problemIndex, setProblemIndex] = useState(0)
+  const displayName = capitalizeName(email.split('@')[0])
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
 
@@ -33,7 +35,9 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     window.location.href = '/'
   }
 
-  const handleBackToDashboard = () => {
+  const handleExitSession = async () => {
+    // Save progress and mark as abandoned
+    await completeSession()
     navigate('/')
   }
 
@@ -115,7 +119,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
         <div className="max-w-4xl mx-auto">
-          <AppHeader onLogout={handleLogout} />
+          <SessionNavigationHeader onLogout={handleLogout} userName={displayName} />
           <div className="flex items-center justify-center">
             <Card className="w-full max-w-md bg-gradient-to-br from-secondary/20 to-secondary/5 border-secondary/30 hover:shadow-lg transition-all">
               <CardHeader className="text-center">
@@ -158,21 +162,12 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* App Header with Branding */}
-        <AppHeader onLogout={handleLogout} />
-
-        {/* Back Button */}
-        <div className="mb-4">
-          <Button
-            onClick={handleBackToDashboard}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </div>
+        {/* Navigation Header */}
+        <SessionNavigationHeader 
+          onLogout={handleLogout} 
+          onExitSession={handleExitSession}
+          userName={displayName}
+        />
 
         {/* Session Info Header (Timer hidden, analytics still track in background) */}
         <div className="mb-6">

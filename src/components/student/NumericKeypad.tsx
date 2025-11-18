@@ -77,7 +77,7 @@ export function NumericKeypad({ value, onChange, onSubmit, disabled = false, max
       <div className="mb-6">
         <div className="bg-white/90 border-2 border-gray-300 rounded-xl p-4 min-h-[80px] flex items-center justify-center">
           <span className="text-4xl font-bold text-gray-800">
-            {value || '?'}
+            {value || ''}
           </span>
         </div>
         <div className="text-center mt-2">
