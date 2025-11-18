@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
+import { SessionTimer } from './SessionTimer'
+import { MasteryBadge } from './MasteryBadge'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { UnifiedMathQuestion } from './UnifiedMathQuestion'
@@ -28,6 +30,8 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
+  const [showMasteryBadge, setShowMasteryBadge] = useState(false)
+  const [masteredProblem, setMasteredProblem] = useState<{ multiplicand: number; multiplier: number } | null>(null)
   const displayName = capitalizeName(email.split('@')[0])
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
@@ -95,6 +99,15 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
         const newConsecutive = consecutiveCorrect + 1
         setConsecutiveCorrect(newConsecutive)
         
+        // Check if this problem was just mastered (3 consecutive correct)
+        const gridUpdate = sessionState?.gridUpdates.find(
+          u => u.multiplicand === currentProblem.multiplicand && u.multiplier === currentProblem.multiplier
+        )
+        if (gridUpdate && gridUpdate.consecutiveCorrect === 3) {
+          setMasteredProblem({ multiplicand: currentProblem.multiplicand, multiplier: currentProblem.multiplier })
+          setShowMasteryBadge(true)
+        }
+        
         // Trigger confetti on 5 consecutive correct answers
         if (newConsecutive === 5) {
           const { default: confetti } = await import('canvas-confetti')
@@ -103,12 +116,11 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
             spread: 70,
             origin: { y: 0.6 }
           })
-          // Reset counter after celebration
           setConsecutiveCorrect(0)
         }
       } else {
         playError()
-        setConsecutiveCorrect(0) // Reset on incorrect answer
+        setConsecutiveCorrect(0)
       }
 
       setFeedbackResult({
@@ -190,14 +202,36 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   }
 
   return (
-    <div className="min-h-screen bg-background pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <SessionNavigationHeader
         userName={displayName}
         onLogout={handleLogout}
         onExitSession={handleExitSession}
       />
       
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      {/* Mastery Achievement Badge */}
+      {masteredProblem && (
+        <MasteryBadge 
+          show={showMasteryBadge}
+          multiplicand={masteredProblem.multiplicand}
+          multiplier={masteredProblem.multiplier}
+          onComplete={() => setShowMasteryBadge(false)}
+        />
+      )}
+      
+      <div className="container mx-auto px-4 py-6 max-w-4xl pt-20">
+        {/* Session Timer */}
+        {startTime && sessionState && (
+          <div className="mb-6">
+            <SessionTimer 
+              startTime={startTime}
+              duration={SESSION_DURATION}
+              currentProblemIndex={sessionState.currentProblemIndex}
+              totalProblems={sessionState.problemQueue.length}
+            />
+          </div>
+        )}
+        
         <UnifiedMathQuestion
           problem={currentProblem}
           onSubmitAnswer={handleSubmitAnswer}
