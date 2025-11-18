@@ -43,7 +43,6 @@ function StudentRoutes() {
           setDesiredMode(undefined)
           navigate('/')
         }}
-        autoStart={true}
         desiredMode={desiredMode}
         key="practice-page"
       />
