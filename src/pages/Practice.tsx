@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
 import { PlacementTest } from '@/components/student/PlacementTest'
@@ -15,6 +16,7 @@ interface PracticePageProps {
 }
 
 export function PracticePage({ onBack, autoStart = false, desiredMode }: PracticePageProps) {
+  const navigate = useNavigate()
   const { identity, clearIdentity } = useStudentIdentity()
   const { refreshJourneyState, needsPlacement, canStartPractice, loading: journeyLoading } = useStudentJourney()
   const [mode, setMode] = useState<'placement' | 'practice' | 'results' | null>(null)
@@ -23,7 +25,7 @@ export function PracticePage({ onBack, autoStart = false, desiredMode }: Practic
 
   const handleLogout = () => {
     clearIdentity()
-    window.location.href = '/'
+    navigate('/')
   }
 
   // Deterministic mode resolution based on desiredMode and journey state

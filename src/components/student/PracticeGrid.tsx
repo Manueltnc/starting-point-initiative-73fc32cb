@@ -38,7 +38,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    window.location.href = '/'
+    navigate('/')
   }
 
   const handleExitSession = async () => {

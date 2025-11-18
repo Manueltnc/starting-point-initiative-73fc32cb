@@ -7,6 +7,7 @@ import { useSessionProgress } from '@/hooks/useSessionProgress'
 import { useProblemQueue } from '@/hooks/useProblemQueue'
 import { useSessionRecovery } from '@/hooks/useSessionRecovery'
 import { useSessionState } from '@/hooks/useSessionState'
+import { saveSession } from '@/lib/session-storage'
 
 const apiClient = createApiClient()
 
@@ -108,16 +109,30 @@ export function useMathSession() {
 
       // For practice sessions: add incorrect problems to retry queue
       // For placement tests: skip incorrect problems (don't re-queue)
-      const newIncorrectProblems = (!isCorrect && prev.sessionType === 'practice') ? 
-        [...prev.incorrectProblems, currentProblem] : 
+      const newIncorrectProblems = (!isCorrect && prev.sessionType === 'practice') ?
+        [...prev.incorrectProblems, currentProblem] :
         prev.incorrectProblems
 
-      return {
+      const updatedState = {
         ...prev,
         // Don't increment index here - let getNextProblem handle it
         gridUpdates: updatedGridUpdates,
         incorrectProblems: newIncorrectProblems
       }
+
+      // Persist updated session state to localStorage for recovery
+      saveSession({
+        sessionId: updatedState.sessionId,
+        sessionType: updatedState.sessionType,
+        currentProblemIndex: updatedState.currentProblemIndex,
+        problemQueue: updatedState.problemQueue,
+        incorrectProblems: updatedState.incorrectProblems,
+        gridUpdates: updatedState.gridUpdates,
+        startTime: Date.now(), // Track when session started for recovery UI
+        lastActivity: Date.now(),
+      })
+
+      return updatedState
     })
 
     // Calculate session analytics using updated grid updates

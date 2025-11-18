@@ -1,15 +1,20 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { LoginPage } from '@/pages/Login'
 import { StudentHome } from '@/pages/StudentHome'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 import { ProgressGrid } from '@/components/student/ProgressGrid'
+import { PlacementReady } from '@/pages/PlacementReady'
+import { PlacementActive } from '@/pages/PlacementActive'
+import { PracticeReady } from '@/pages/PracticeReady'
+import { PracticeActive } from '@/pages/PracticeActive'
+import { SessionResults } from '@/pages/SessionResults'
+import { PracticeGuard } from '@/components/guards/PracticeGuard'
 import { Loader2 } from 'lucide-react'
 
 function StudentRoutes() {
   const { identity, loading, clearIdentity } = useStudentIdentity()
   const navigate = useNavigate()
-  const location = useLocation()
 
   if (loading) {
     return (
@@ -28,47 +33,87 @@ function StudentRoutes() {
 
   const handleLogout = () => {
     clearIdentity()
-    window.location.reload()
+    navigate('/')
   }
 
-  const currentPath = location.pathname
+  return (
+    <Routes>
+      {/* Dashboard (Home) */}
+      <Route path="/" element={<StudentHome onLogout={handleLogout} />} />
 
-  // Progress Grid route (separate full-page view)
-  if (currentPath === '/progress') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-6">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-primary hover:underline"
-            >
-              ← Back to Home
-            </button>
+      {/* Placement Routes */}
+      <Route path="/placement/ready" element={<PlacementReady onLogout={handleLogout} />} />
+      <Route path="/placement/active/:sessionId" element={<PlacementActive onLogout={handleLogout} />} />
+      <Route path="/placement/results/:sessionId" element={<SessionResults onLogout={handleLogout} sessionType="placement" />} />
+
+      {/* Practice Routes (Protected - requires placement completion) */}
+      <Route
+        path="/practice/ready"
+        element={
+          <PracticeGuard>
+            <PracticeReady onLogout={handleLogout} />
+          </PracticeGuard>
+        }
+      />
+      <Route
+        path="/practice/active/:sessionId"
+        element={
+          <PracticeGuard>
+            <PracticeActive onLogout={handleLogout} />
+          </PracticeGuard>
+        }
+      />
+      <Route
+        path="/practice/results/:sessionId"
+        element={
+          <PracticeGuard>
+            <SessionResults onLogout={handleLogout} sessionType="practice" />
+          </PracticeGuard>
+        }
+      />
+
+      {/* Progress Grid (Full Page View) */}
+      <Route
+        path="/progress"
+        element={
+          <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-6">
+                <button
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-2 text-primary hover:underline"
+                >
+                  ← Back to Home
+                </button>
+              </div>
+              <ProgressGrid
+                email={identity.email}
+                gradeLevel={identity.metadata?.grade_level || '3'}
+              />
+            </div>
           </div>
-          <ProgressGrid
-            email={identity.email}
-            gradeLevel={identity.metadata?.grade_level || '3'}
-          />
-        </div>
-      </div>
-    )
+        }
+      />
+    </Routes>
+  )
+}
+
+function AdminRoutes() {
+  const navigate = useNavigate()
+
+  const handleAdminLogout = () => {
+    navigate('/')
   }
 
-  // Main dashboard - handles all student navigation via state
-  return <StudentHome onLogout={handleLogout} />
+  return <AdminDashboard onLogout={handleAdminLogout} />
 }
 
 function App() {
-  const handleAdminLogout = () => {
-    window.location.href = '/'
-  }
-
   return (
     <Router>
       <Routes>
         {/* Public Admin Route - No Authentication Required */}
-        <Route path="/admin" element={<AdminDashboard onLogout={handleAdminLogout} />} />
+        <Route path="/admin" element={<AdminRoutes />} />
 
         {/* Student Routes - Require Email Login */}
         <Route path="/*" element={<StudentRoutes />} />

@@ -40,7 +40,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    window.location.href = '/'
+    navigate('/')
   }
 
   const handleExitSession = async () => {
