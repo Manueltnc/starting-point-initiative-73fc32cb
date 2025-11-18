@@ -198,8 +198,8 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
         onExitSession={handleExitSession}
       />
       
-      <div className="container mx-auto px-4 py-8 pt-20">
-        <div className="mb-6 space-y-2">
+      <div className="container mx-auto px-4 py-8 pt-24 max-w-4xl">
+        <div className="mb-8 space-y-3 px-2">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">
               Question {sessionState ? sessionState.currentProblemIndex + 1 : 0} of {sessionState?.problemQueue.length || 0}

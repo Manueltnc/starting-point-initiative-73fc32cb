@@ -69,43 +69,47 @@ export function UnifiedMathQuestion({
 
   if (showFeedback && feedbackResult) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="text-center">
-          {feedbackResult.correct ? (
-            <div className="flex flex-col items-center gap-2">
-              <CheckCircle className="h-16 w-16 text-green-500" />
-              <h2 className="text-2xl font-bold text-green-600">Correct!</h2>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <XCircle className="h-16 w-16 text-red-500" />
-              <h2 className="text-2xl font-bold text-red-600">Incorrect</h2>
-              <p className="text-lg text-muted-foreground">
-                The correct answer is {feedbackResult.correctAnswer}
-              </p>
-            </div>
-          )}
-        </CardHeader>
-      </Card>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardHeader className="text-center py-12">
+            {feedbackResult.correct ? (
+              <div className="flex flex-col items-center gap-4">
+                <CheckCircle className="h-20 w-20 text-green-500" />
+                <h2 className="text-3xl font-bold text-green-600">Correct!</h2>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <XCircle className="h-20 w-20 text-red-500" />
+                <h2 className="text-3xl font-bold text-red-600">Incorrect</h2>
+                <p className="text-xl text-muted-foreground">
+                  The correct answer is {feedbackResult.correctAnswer}
+                </p>
+              </div>
+            )}
+          </CardHeader>
+        </Card>
+      </div>
     )
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader className="text-center">
-        <EquationProblem
-          multiplicand={problem.multiplicand}
-          multiplier={problem.multiplier}
-        />
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <NumericKeypad
-          value={userAnswer}
-          onChange={handleAnswerChange}
-          onSubmit={handleSubmit}
-          disabled={disabled}
-        />
-      </CardContent>
-    </Card>
+    <div className="flex items-center justify-center">
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader className="text-center pb-2">
+          <EquationProblem
+            multiplicand={problem.multiplicand}
+            multiplier={problem.multiplier}
+          />
+        </CardHeader>
+        <CardContent className="space-y-6 px-6 pb-8">
+          <NumericKeypad
+            value={userAnswer}
+            onChange={handleAnswerChange}
+            onSubmit={handleSubmit}
+            disabled={disabled}
+          />
+        </CardContent>
+      </Card>
+    </div>
   )
 }
