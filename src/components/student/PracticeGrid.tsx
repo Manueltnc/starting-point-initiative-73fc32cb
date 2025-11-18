@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
@@ -9,18 +8,16 @@ import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { UnifiedMathQuestion } from './UnifiedMathQuestion'
 import { PRACTICE_CONFIG } from '@/lib/config'
-import { supabase } from '@/integrations/supabase/client'
-import { capitalizeName } from '@/lib/utils'
 import type { MathProblem as MathProblemType } from '@/types'
 
 interface PracticeGridProps {
   email: string
   gradeLevel: string
-  onComplete: () => void
+  onComplete: (results: any) => void
+  onDashboardClick?: () => void
 }
 
-export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
-  const navigate = useNavigate()
+export function PracticeGrid({ email, gradeLevel, onComplete, onDashboardClick }: PracticeGridProps) {
   const { playSuccess, playError } = useAudioFeedback()
   const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading } = useMathSession()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
@@ -32,19 +29,10 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
   const [showMasteryBadge, setShowMasteryBadge] = useState(false)
   const [masteredProblem, setMasteredProblem] = useState<{ multiplicand: number; multiplier: number } | null>(null)
-  const displayName = capitalizeName(email.split('@')[0])
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/'
-  }
-
-  const handleExitSession = async () => {
-    await completeSession()
-    navigate('/')
-  }
+  // Removed navigation logic - handled by parent ActiveSessionScreen
 
   useEffect(() => {
     if (sessionStarted && !sessionState) {
@@ -83,7 +71,27 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
 
   const handleSessionComplete = async () => {
     await completeSession()
-    onComplete()
+    
+    // Calculate comprehensive results
+    const totalProblems = sessionState?.gridUpdates.length || 0
+    const correctAnswers = sessionState?.gridUpdates.filter(u => u.lastAttemptCorrect).length || 0
+    const accuracy = totalProblems > 0 ? Math.round((correctAnswers / totalProblems) * 100) : 0
+    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0
+    
+    // Count newly mastered facts (those with consecutiveCorrect >= 3)
+    const masteredFacts = sessionState?.gridUpdates.filter(u => u.consecutiveCorrect >= 3).length || 0
+    
+    const results = {
+      totalProblems,
+      correctAnswers,
+      accuracy,
+      timeSpent,
+      starsEarned: correctAnswers, // Simple: 1 star per correct answer
+      masteredFacts,
+      sessionId: sessionState?.sessionId
+    }
+    
+    onComplete(results)
   }
 
   const handleSubmitAnswer = async (answer: number, timeSpent: number) => {
@@ -158,11 +166,9 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   if (!sessionStarted) {
     return (
       <div className="min-h-screen bg-background">
-        <SessionNavigationHeader
-          userName={displayName}
-          onLogout={handleLogout}
-          onExitSession={handleExitSession}
-        />
+        {onDashboardClick && (
+          <SessionNavigationHeader onExitSession={onDashboardClick} />
+        )}
         <div className="flex items-center justify-center pt-20">
           <Card className="w-full max-w-md">
             <CardHeader>
@@ -203,11 +209,9 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-      <SessionNavigationHeader
-        userName={displayName}
-        onLogout={handleLogout}
-        onExitSession={handleExitSession}
-      />
+      {onDashboardClick && (
+        <SessionNavigationHeader onExitSession={onDashboardClick} />
+      )}
       
       {/* Mastery Achievement Badge */}
       {masteredProblem && (
