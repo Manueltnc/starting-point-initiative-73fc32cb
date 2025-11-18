@@ -90,28 +90,38 @@ export function useGridProgress() {
   }, [getStudentCellState])
 
   const getMasteryPercentage = useCallback(() => {
-    if (!progress) return 0
+    if (!progress || !progress.gridState || !Array.isArray(progress.gridState)) return 0
 
-    const totalCells = progress.gridState.flat().length
-    const masteredCells = progress.gridState.flat().filter(cell => cell.consecutiveCorrect >= 3).length
-    
+    const flatGrid = progress.gridState.flat()
+    const totalCells = flatGrid.length
+    const masteredCells = flatGrid.filter(cell => cell.consecutiveCorrect >= 3).length
+
+    if (totalCells === 0) return 0
     return Math.round((masteredCells / totalCells) * 100)
   }, [progress])
 
   const getGuardrailMasteryPercentage = useCallback(() => {
-    if (!progress) return 0
+    if (!progress || !progress.gridState || !Array.isArray(progress.gridState)) return 0
 
-    const guardrailRange = progress.currentGuardrail === '1-5' ? 5 : 
+    const guardrailRange = progress.currentGuardrail === '1-5' ? 5 :
                           progress.currentGuardrail === '1-9' ? 9 : 12
 
     const relevantCells = progress.gridState
       .slice(0, guardrailRange)
-      .map(row => row.slice(0, guardrailRange))
+      .map(row => Array.isArray(row) ? row.slice(0, guardrailRange) : [])
       .flat()
-    
-    const masteredCells = relevantCells.filter(cell => cell.consecutiveCorrect >= 3).length
-    
+
+    const masteredCells = relevantCells.filter(cell => cell && cell.consecutiveCorrect >= 3).length
+
+    if (relevantCells.length === 0) return 0
     return Math.round((masteredCells / relevantCells.length) * 100)
+  }, [progress])
+
+  const getMasteredFactsCount = useCallback(() => {
+    if (!progress || !progress.gridState || !Array.isArray(progress.gridState)) return 0
+
+    const flatGrid = progress.gridState.flat()
+    return flatGrid.filter(cell => cell && cell.consecutiveCorrect >= 3).length
   }, [progress])
 
   return {
@@ -125,5 +135,6 @@ export function useGridProgress() {
     getStudentCellState,
     getMasteryPercentage,
     getGuardrailMasteryPercentage,
+    getMasteredFactsCount,
   }
 }

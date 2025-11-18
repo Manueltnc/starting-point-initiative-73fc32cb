@@ -25,7 +25,7 @@ interface StudentHomeProps {
 
 export function StudentHome({ onLogout }: StudentHomeProps) {
   const { identity } = useStudentIdentity()
-  const { progress, loading: progressLoading, fetchProgress, getMasteryPercentage, getGuardrailMasteryPercentage } = useGridProgress()
+  const { progress, loading: progressLoading, fetchProgress, getMasteryPercentage, getGuardrailMasteryPercentage, getMasteredFactsCount } = useGridProgress()
   const { loading: journeyLoading, shouldShowPlacement, canStartPractice, refreshJourneyState } = useStudentJourney()
   const [showProgressModal, setShowProgressModal] = useState(false)
 
@@ -386,7 +386,7 @@ export function StudentHome({ onLogout }: StudentHomeProps) {
                     <p className="text-xs text-muted-foreground">Mastered Facts</p>
                   </div>
                   <p className="text-2xl font-bold text-primary text-center">
-                    {progress.gridState.flat().filter(cell => cell.consecutiveCorrect >= 3).length}
+                    {getMasteredFactsCount()}
                   </p>
                 </CardContent>
               </Card>
