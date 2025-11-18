@@ -63,13 +63,23 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
         { sessionType: 'placement', problems: finalProblems }
       )
 
-      setSessionState({
+      const newSession = {
         sessionId,
-        sessionType: 'placement',
+        sessionType: 'placement' as const,
         currentProblemIndex: 0,
         problemQueue: finalProblems,
         incorrectProblems: [],
         gridUpdates: []
+      }
+
+      setSessionState(newSession)
+
+      // Persist new session to localStorage for recovery
+      const { saveSession } = await import('@/lib/session-storage')
+      saveSession({
+        ...newSession,
+        startTime: Date.now(),
+        lastActivity: Date.now(),
       })
 
       return { sessionId, problems: finalProblems }
@@ -168,13 +178,23 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
         { sessionType: 'practice', problems: finalProblemQueue }
       )
 
-      setSessionState({
+      const newSession = {
         sessionId,
-        sessionType: 'practice',
+        sessionType: 'practice' as const,
         currentProblemIndex: 0,
         problemQueue: finalProblemQueue,
         incorrectProblems: [],
         gridUpdates: []
+      }
+
+      setSessionState(newSession)
+
+      // Persist new session to localStorage for recovery
+      const { saveSession } = await import('@/lib/session-storage')
+      saveSession({
+        ...newSession,
+        startTime: Date.now(),
+        lastActivity: Date.now(),
       })
 
       return { sessionId, problems: finalProblemQueue }
@@ -209,6 +229,10 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
           sessionState.gridUpdates
         )
       }
+
+      // Clear persisted session from localStorage
+      const { clearSession } = await import('@/lib/session-storage')
+      clearSession()
     } catch (err) {
       console.error('Failed to complete session:', err)
     }
