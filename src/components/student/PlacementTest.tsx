@@ -73,16 +73,8 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     try {
       await completeSession()
 
-      // Analyze placement test results and set guardrails
-      if (sessionState?.sessionId) {
-        try {
-          const { createApiClient } = await import('@/lib/api-client')
-          const apiClient = createApiClient()
-          await apiClient.analyzeAndApplyPlacementResults(sessionState.sessionId)
-        } catch (error) {
-          console.error('Failed to analyze placement results:', error)
-        }
-      }
+      // Grid is now updated during placement test via updateMathGrid()
+      // No need for separate analyzeAndApplyPlacementResults call
 
       if (onJourneyStateChange) {
         onJourneyStateChange()
