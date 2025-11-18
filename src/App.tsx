@@ -74,10 +74,10 @@ function StudentApp() {
   }
 
   const handleBackToDashboard = async () => {
-    await refreshJourneyState()
     setSessionType(null)
     setSessionResults(null)
     setScreen('dashboard')
+    await refreshJourneyState()
   }
 
   const handlePracticeMore = () => {
@@ -139,7 +139,6 @@ function StudentApp() {
         results={sessionResults}
         onBackToDashboard={handleBackToDashboard}
         onPracticeMore={handlePracticeMore}
-        userName={firstName}
       />
     )
   }

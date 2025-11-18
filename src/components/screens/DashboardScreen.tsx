@@ -143,7 +143,7 @@ export function DashboardScreen({ onStartSession, onLogout, shouldShowPlacement,
         )}
 
         {/* Main Call-to-Action */}
-        <Card className="mb-6 bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
+        <Card className="mb-6 bg-gradient-to-br from-primary/10 to-transparent border-primary/30 max-w-2xl mx-auto">
           <CardContent className="pt-6 pb-6">
             {shouldShowPlacement ? (
               <Button
