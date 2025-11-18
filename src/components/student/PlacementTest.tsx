@@ -1,24 +1,20 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { UnifiedMathQuestion } from './UnifiedMathQuestion'
-import { supabase } from '@/integrations/supabase/client'
-import { capitalizeName } from '@/lib/utils'
 import type { MathProblem } from '@/types'
 
 interface PlacementTestProps {
   email: string
   gradeLevel: string
   onComplete: (results: any) => void
-  onJourneyStateChange?: () => void
+  onDashboardClick?: () => void
 }
 
-export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateChange }: PlacementTestProps) {
-  const navigate = useNavigate()
+export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick }: PlacementTestProps) {
   const { playSuccess, playError } = useAudioFeedback()
   const mathSession = useMathSession()
   const { 
@@ -36,18 +32,8 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
-  const displayName = capitalizeName(email.split('@')[0])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/'
-  }
-
-  const handleExitSession = async () => {
-    // Don't mark as complete if test isn't finished
-    // Just navigate away - session will be marked as abandoned by background job
-    navigate('/')
-  }
+  // Removed navigation logic - handled by parent ActiveSessionScreen
 
   useEffect(() => {
     if (sessionStarted && !sessionState) {
@@ -88,16 +74,13 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
           console.error('Failed to analyze placement results:', error)
         }
       }
-      
-      if (onJourneyStateChange) {
-        onJourneyStateChange()
-      }
 
       const results = {
         sessionId: sessionState?.sessionId,
         totalProblems,
         correctAnswers: correctCount,
         accuracy,
+        guardrailsLevel: '1-5', // Default, will be updated based on analysis
         timestamp: new Date().toISOString()
       }
 
@@ -174,12 +157,10 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   if (!sessionStarted) {
     return (
       <div className="min-h-screen bg-background">
-        <SessionNavigationHeader
-          userName={displayName}
-          onLogout={handleLogout}
-          onExitSession={handleExitSession}
-        />
-        <div className="flex items-center justify-center pt-20">
+        {onDashboardClick && (
+          <SessionNavigationHeader onExitSession={onDashboardClick} />
+        )}
+        <div className="flex items-center justify-center pt-20">\
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="text-center">Placement Test</CardTitle>
@@ -222,11 +203,9 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
   return (
     <div className="min-h-screen bg-background pt-16">
-      <SessionNavigationHeader
-        userName={displayName}
-        onLogout={handleLogout}
-        onExitSession={handleExitSession}
-      />
+      {onDashboardClick && (
+        <SessionNavigationHeader onExitSession={onDashboardClick} />
+      )}
       
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <UnifiedMathQuestion
