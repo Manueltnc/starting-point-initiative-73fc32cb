@@ -69,47 +69,56 @@ export function UnifiedMathQuestion({
 
   if (showFeedback && feedbackResult) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardHeader className="text-center py-12">
-            {feedbackResult.correct ? (
-              <div className="flex flex-col items-center gap-4">
-                <CheckCircle className="h-20 w-20 text-green-500" />
-                <h2 className="text-3xl font-bold text-green-600">Correct!</h2>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <XCircle className="h-20 w-20 text-red-500" />
-                <h2 className="text-3xl font-bold text-red-600">Incorrect</h2>
-                <p className="text-xl text-muted-foreground">
-                  The correct answer is {feedbackResult.correctAnswer}
-                </p>
-              </div>
-            )}
-          </CardHeader>
-        </Card>
+      <div className="flex items-center justify-center min-h-[500px]">
+        <div className="w-full max-w-3xl mx-auto px-4">
+          <Card className="shadow-lg">
+            <CardHeader className="text-center py-16">
+              {feedbackResult.correct ? (
+                <div className="flex flex-col items-center gap-6">
+                  <CheckCircle className="h-24 w-24 text-green-500" />
+                  <h2 className="text-4xl font-bold text-green-600">Correct!</h2>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-6">
+                  <XCircle className="h-24 w-24 text-red-500" />
+                  <h2 className="text-4xl font-bold text-red-600">Incorrect</h2>
+                  <div className="mt-2">
+                    <p className="text-lg text-muted-foreground mb-2">
+                      The correct answer is:
+                    </p>
+                    <p className="text-5xl font-bold text-primary">
+                      {feedbackResult.correctAnswer}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardHeader>
+          </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center justify-center">
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="text-center pb-2">
-          <EquationProblem
-            multiplicand={problem.multiplicand}
-            multiplier={problem.multiplier}
-          />
-        </CardHeader>
-        <CardContent className="space-y-6 px-6 pb-8">
-          <NumericKeypad
-            value={userAnswer}
-            onChange={handleAnswerChange}
-            onSubmit={handleSubmit}
-            disabled={disabled}
-          />
-        </CardContent>
-      </Card>
+    <div className="flex items-center justify-center min-h-[500px]">
+      <div className="w-full max-w-3xl mx-auto px-4">
+        <Card className="shadow-lg">
+          <CardHeader className="text-center pb-8 pt-12">
+            <EquationProblem
+              multiplicand={problem.multiplicand}
+              multiplier={problem.multiplier}
+            />
+          </CardHeader>
+          <CardContent className="px-8 pb-12">
+            <NumericKeypad
+              value={userAnswer}
+              onChange={handleAnswerChange}
+              onSubmit={handleSubmit}
+              disabled={disabled}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
