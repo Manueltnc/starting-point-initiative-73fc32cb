@@ -4,13 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
-import { useGridProgress } from '@/hooks/useGridProgress'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { UnifiedMathQuestion } from './UnifiedMathQuestion'
 import { PRACTICE_CONFIG } from '@/lib/config'
 import { supabase } from '@/integrations/supabase/client'
 import { capitalizeName } from '@/lib/utils'
-import { Target, Trophy } from 'lucide-react'
 import type { MathProblem as MathProblemType } from '@/types'
 
 interface PracticeGridProps {
@@ -23,14 +21,13 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
   const navigate = useNavigate()
   const { playSuccess, playError } = useAudioFeedback()
   const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading } = useMathSession()
-  const { getGuardrailMasteryPercentage } = useGridProgress()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
-  const [problemIndex, setProblemIndex] = useState(0)
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
   const displayName = capitalizeName(email.split('@')[0])
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
@@ -60,7 +57,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
         
         if (problemKey !== currentProblemKey) {
           setCurrentProblem(nextProblem)
-          setProblemIndex(sessionState.currentProblemIndex)
           setShowFeedback(false)
           setFeedbackResult(null)
         }
@@ -96,8 +92,23 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
 
       if (result.correct) {
         playSuccess()
+        const newConsecutive = consecutiveCorrect + 1
+        setConsecutiveCorrect(newConsecutive)
+        
+        // Trigger confetti on 5 consecutive correct answers
+        if (newConsecutive === 5) {
+          const { default: confetti } = await import('canvas-confetti')
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          })
+          // Reset counter after celebration
+          setConsecutiveCorrect(0)
+        }
       } else {
         playError()
+        setConsecutiveCorrect(0) // Reset on incorrect answer
       }
 
       setFeedbackResult({
@@ -178,8 +189,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     )
   }
 
-  const masteryPercentage = getGuardrailMasteryPercentage()
-
   return (
     <div className="min-h-screen bg-background pt-16">
       <SessionNavigationHeader
@@ -189,27 +198,6 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
       />
       
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="mb-6">
-          <div className="flex items-center justify-between max-w-2xl mx-auto px-4">
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm font-medium">
-                  Problem {problemIndex + 1} of {sessionState?.problemQueue.length || 0}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              <div>
-                <p className="text-sm font-medium">
-                  Mastery: {masteryPercentage}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <UnifiedMathQuestion
           problem={currentProblem}
           onSubmitAnswer={handleSubmitAnswer}
