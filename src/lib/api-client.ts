@@ -22,6 +22,8 @@ export interface SessionUpdateData {
   fastAnswersCount?: number
   mediumAnswersCount?: number
   slowAnswersCount?: number
+  completed_items?: number
+  total_items?: number
 }
 
 export class UnifiedApiClient {
@@ -85,7 +87,10 @@ export class UnifiedApiClient {
     const { error } = await sb
       .from('multiplications_app_learning_sessions')
       .update({
-        completed_items: updates.itemsAttempted,
+        // Use explicit completed_items if provided, otherwise use itemsAttempted
+        completed_items: updates.completed_items ?? updates.itemsAttempted,
+        // Use explicit total_items if provided
+        total_items: updates.total_items,
         correct_answers: updates.itemsCorrect,
         accuracy: updates.accuracy,
         duration_seconds: updates.duration,

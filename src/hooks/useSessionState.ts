@@ -190,11 +190,13 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
     if (!sessionState) return
 
     try {
-      // Update final session state
+      // Update final session state with completed items and total items
       const metrics = calculateSessionMetrics(sessionState)
       await apiClient.updateSession(sessionState.sessionId, {
         ...metrics,
-        duration: 0 // This would be calculated from the actual session duration
+        duration: 0, // This would be calculated from the actual session duration
+        completed_items: sessionState.currentProblemIndex + 1, // Total problems answered
+        total_items: sessionState.problemQueue.length // Total problems in the session
       })
 
       // Mark session as completed
