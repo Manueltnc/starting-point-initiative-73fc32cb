@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import type { UnifiedApiClient } from '@/lib/api-client'
 import type { MathProblem, MathSessionState } from '@/types'
 import { calculateSessionMetrics } from '@/lib/session-analytics'
-import { getPlacementQuestionCount, PLACEMENT_CONFIG } from '@/lib/config'
+import { getPlacementQuestionCount } from '@/lib/config'
 import { generateMathProblems, getDifficultyBand } from '@/lib/problem-generator'
 
 interface UseSessionStateOptions {
@@ -29,50 +29,32 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
     try {
       // Get question count from config
       const totalQuestions = getPlacementQuestionCount(gradeLevel)
-      const basicCount = Math.floor(totalQuestions * PLACEMENT_CONFIG.distribution.basic)
-      const advancedCount = totalQuestions - basicCount
       
-      // Generate placement test problems (90% from 1-9, 10% from 9-12)
-      const problems1to9 = generateMathProblems([1, 9], [1, 9], basicCount)
-      const problems9to12 = generateMathProblems([9, 12], [9, 12], advancedCount)
-      const allProblems = [...problems1to9, ...problems9to12]
+      // Generate placement test problems - ONLY 2-9 times tables (no 1x, 0x, 10+)
+      // This prevents issues like "4 x 1" appearing in placement tests
+      const problems = generateMathProblems([2, 9], [2, 9], totalQuestions * 2) // Generate extra for deduplication
       
-      // Deduplicate problems (ranges overlap at 9, so duplicates are possible)
+      // Deduplicate problems to ensure no repeats
       const seenProblems = new Set<string>()
       const uniqueProblems: MathProblem[] = []
-      for (const problem of allProblems) {
+      
+      for (const problem of problems) {
         const problemKey = `${problem.multiplicand}×${problem.multiplier}`
-        if (!seenProblems.has(problemKey)) {
+        // Also check the commutative version (e.g., 4×8 is same as 8×4)
+        const commutativeKey = `${problem.multiplier}×${problem.multiplicand}`
+        
+        if (!seenProblems.has(problemKey) && !seenProblems.has(commutativeKey)) {
           seenProblems.add(problemKey)
+          seenProblems.add(commutativeKey)
           uniqueProblems.push(problem)
         }
+        
+        // Stop when we have enough unique problems
+        if (uniqueProblems.length >= totalQuestions) break
       }
       
-      // If we lost problems due to deduplication, we need to generate more
-      // But first, shuffle what we have
-      const shuffledProblems = uniqueProblems.sort(() => Math.random() - 0.5)
-      
-      // If we don't have enough unique problems, generate more from the full range
-      if (shuffledProblems.length < totalQuestions) {
-        const additionalNeeded = totalQuestions - shuffledProblems.length
-        const additionalProblems = generateMathProblems([1, 12], [1, 12], additionalNeeded)
-        
-        // Deduplicate additional problems against what we already have
-        for (const problem of additionalProblems) {
-          if (shuffledProblems.length >= totalQuestions) break
-          const problemKey = `${problem.multiplicand}×${problem.multiplier}`
-          if (!seenProblems.has(problemKey)) {
-            seenProblems.add(problemKey)
-            shuffledProblems.push(problem)
-          }
-        }
-        
-        // Final shuffle to mix in the additional problems
-        shuffledProblems.sort(() => Math.random() - 0.5)
-      }
-      
-      // Trim to exact count needed
-      const finalProblems = shuffledProblems.slice(0, totalQuestions)
+      // Shuffle the unique problems
+      const finalProblems = uniqueProblems.sort(() => Math.random() - 0.5).slice(0, totalQuestions)
 
       const { sessionId } = await apiClient.createSession(
         'math',

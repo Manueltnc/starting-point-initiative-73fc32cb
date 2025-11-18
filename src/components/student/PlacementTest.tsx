@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
@@ -36,6 +35,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
   const displayName = capitalizeName(email.split('@')[0])
 
   const handleLogout = async () => {
@@ -98,8 +98,23 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
       if (result.correct) {
         playSuccess()
+        const newConsecutive = consecutiveCorrect + 1
+        setConsecutiveCorrect(newConsecutive)
+        
+        // Trigger confetti on 5 consecutive correct answers
+        if (newConsecutive === 5) {
+          const { default: confetti } = await import('canvas-confetti')
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          })
+          // Reset counter after celebration
+          setConsecutiveCorrect(0)
+        }
       } else {
         playError()
+        setConsecutiveCorrect(0) // Reset on incorrect answer
       }
 
       setFeedbackResult({
@@ -186,10 +201,6 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     )
   }
 
-  const progress = sessionState
-    ? ((sessionState.currentProblemIndex + 1) / sessionState.problemQueue.length) * 100
-    : 0
-
   return (
     <div className="min-h-screen bg-background pt-16">
       <SessionNavigationHeader
@@ -199,20 +210,6 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
       />
       
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="mb-6">
-          <div className="max-w-2xl mx-auto px-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">
-                Question {sessionState ? sessionState.currentProblemIndex + 1 : 0} of {sessionState?.problemQueue.length || 0}
-              </span>
-              <span className="text-sm font-medium">
-                {Math.round(progress)}% Complete
-              </span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </div>
-
         <UnifiedMathQuestion
           problem={currentProblem}
           onSubmitAnswer={handleSubmitAnswer}
