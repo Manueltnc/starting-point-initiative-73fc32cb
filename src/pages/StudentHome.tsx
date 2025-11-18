@@ -6,21 +6,32 @@ import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useGridProgress } from '@/hooks/useGridProgress'
 import { capitalizeName } from '@/lib/utils'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
-import { Target, Trophy, BarChart3, Play, BookOpen, Star, Sparkles, Clock, Award } from 'lucide-react'
+import { Target, Trophy, BarChart3, Play, BookOpen, Star, Sparkles, Clock, Award, ArrowLeft } from 'lucide-react'
 import { ProgressGridModal } from '@/components/student/ProgressGridModal'
+import { PlacementTest } from '@/components/student/PlacementTest'
+import { PracticeGrid } from '@/components/student/PracticeGrid'
+
+type ScreenState =
+  | 'dashboard'
+  | 'ready-placement'
+  | 'placement'
+  | 'ready-practice'
+  | 'practice'
+  | 'results'
 
 interface StudentHomeProps {
-  onStartPlacement: (mode: 'placement') => void
-  onStartPractice: (mode: 'practice') => void
-  onViewProgress: () => void
   onLogout: () => void
 }
 
-export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress, onLogout }: StudentHomeProps) {
+export function StudentHome({ onLogout }: StudentHomeProps) {
   const { identity } = useStudentIdentity()
   const { progress, loading: progressLoading, fetchProgress, getMasteryPercentage, getGuardrailMasteryPercentage } = useGridProgress()
-  const { loading: journeyLoading, shouldShowPlacement, canStartPractice } = useStudentJourney()
+  const { loading: journeyLoading, shouldShowPlacement, canStartPractice, refreshJourneyState } = useStudentJourney()
   const [showProgressModal, setShowProgressModal] = useState(false)
+
+  // State-based navigation
+  const [currentScreen, setCurrentScreen] = useState<ScreenState>('dashboard')
+  const [sessionResults, setSessionResults] = useState<any>(null)
 
   // Check for active/stale sessions on mount
   useEffect(() => {
@@ -61,6 +72,39 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
     }
   }, [identity, fetchProgress, canStartPractice])
 
+  // Navigation handlers
+  const handleStartPlacement = () => {
+    setCurrentScreen('ready-placement')
+  }
+
+  const handleStartPractice = () => {
+    setCurrentScreen('ready-practice')
+  }
+
+  const handlePlacementConfirmed = () => {
+    setCurrentScreen('placement')
+  }
+
+  const handlePracticeConfirmed = () => {
+    setCurrentScreen('practice')
+  }
+
+  const handleSessionComplete = async (results: any) => {
+    setSessionResults(results)
+    setCurrentScreen('results')
+    // Refresh journey state to update dashboard
+    await refreshJourneyState()
+    // Refresh progress data
+    if (identity?.email) {
+      await fetchProgress(identity.email, identity.metadata?.grade_level || '3')
+    }
+  }
+
+  const handleBackToDashboard = () => {
+    setSessionResults(null)
+    setCurrentScreen('dashboard')
+  }
+
   if (journeyLoading || progressLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -76,6 +120,221 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
   const displayName = capitalizeName(rawDisplayName)
   const firstName = displayName.split(' ')[0]
 
+  // ==========================================
+  // SCREEN: Placement Test Session
+  // ==========================================
+  if (currentScreen === 'placement' && identity?.email) {
+    return (
+      <PlacementTest
+        email={identity.email}
+        gradeLevel={identity.metadata?.grade_level || '3'}
+        onComplete={handleSessionComplete}
+        onJourneyStateChange={async () => {
+          await refreshJourneyState()
+        }}
+      />
+    )
+  }
+
+  // ==========================================
+  // SCREEN: Practice Session
+  // ==========================================
+  if (currentScreen === 'practice' && identity?.email) {
+    return (
+      <PracticeGrid
+        email={identity.email}
+        gradeLevel={identity.metadata?.grade_level || '3'}
+        onComplete={handleSessionComplete}
+      />
+    )
+  }
+
+  // ==========================================
+  // SCREEN: Ready to Start Placement
+  // ==========================================
+  if (currentScreen === 'ready-placement') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          <AppHeader onLogout={onLogout} showLogout={true} userName={firstName} />
+
+          <div className="flex items-center justify-center pt-20">
+            <Card className="w-full max-w-lg backdrop-blur-sm bg-white/80 border-white/20">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold text-primary">Placement Test</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">What to expect:</h3>
+                  <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                    <li>You'll answer 20-25 multiplication problems</li>
+                    <li>Problems will help us understand your current level</li>
+                    <li>Take your time - accuracy matters most</li>
+                    <li>This helps us create your personalized learning path</li>
+                  </ul>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={handlePlacementConfirmed}
+                    className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
+                    size="lg"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Placement Test
+                  </Button>
+                  <Button
+                    onClick={handleBackToDashboard}
+                    variant="outline"
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
+  // SCREEN: Ready to Practice
+  // ==========================================
+  if (currentScreen === 'ready-practice') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          <AppHeader onLogout={onLogout} showLogout={true} userName={firstName} />
+
+          <div className="flex items-center justify-center pt-20">
+            <Card className="w-full max-w-lg backdrop-blur-sm bg-white/80 border-white/20">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold text-primary">Ready to Practice?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Practice Session Details:</h3>
+                  <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                    <li>10-minute timed practice session</li>
+                    <li>Focus on multiplication facts you haven't mastered</li>
+                    <li>Adaptive difficulty based on your progress</li>
+                    <li>Track your improvements in real-time</li>
+                  </ul>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={handlePracticeConfirmed}
+                    className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
+                    size="lg"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Practice
+                  </Button>
+                  <Button
+                    onClick={handleBackToDashboard}
+                    variant="outline"
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
+  // SCREEN: Results
+  // ==========================================
+  if (currentScreen === 'results' && sessionResults) {
+    const isPlacement = sessionResults.totalProblems >= 20 // Heuristic: placement tests have 20+ problems
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          <AppHeader onLogout={onLogout} showLogout={true} userName={firstName} />
+
+          <div className="flex items-center justify-center pt-12">
+            <Card className="w-full max-w-2xl backdrop-blur-sm bg-white/80 border-white/20">
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="bg-gradient-to-br from-primary/20 to-primary/5 w-20 h-20 rounded-full flex items-center justify-center">
+                    <Trophy className="h-10 w-10 text-primary" />
+                  </div>
+                </div>
+                <CardTitle className="text-3xl font-bold text-primary">
+                  {isPlacement ? 'Placement Test Complete!' : 'Practice Session Complete!'}
+                </CardTitle>
+                <p className="text-muted-foreground mt-2">
+                  {isPlacement
+                    ? 'Great job! Your placement test is complete. You can now start practicing multiplication problems.'
+                    : 'Awesome work! Keep practicing to master more multiplication facts.'}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg">
+                    <Target className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Problems Attempted</p>
+                    <p className="text-4xl font-bold text-primary">{sessionResults.totalProblems}</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg">
+                    <Trophy className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Correct Answers</p>
+                    <p className="text-4xl font-bold text-primary">{sessionResults.correctAnswers}</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg">
+                    <Clock className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Accuracy</p>
+                    <p className="text-4xl font-bold text-primary">{sessionResults.accuracy}%</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                  {isPlacement && canStartPractice && (
+                    <Button
+                      onClick={handleStartPractice}
+                      className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
+                      size="lg"
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Start Practice Session
+                    </Button>
+                  )}
+                  {!isPlacement && (
+                    <Button
+                      onClick={handleStartPractice}
+                      className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
+                      size="lg"
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Practice Again
+                    </Button>
+                  )}
+                  <Button onClick={handleBackToDashboard} variant="outline" size="lg">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ==========================================
+  // SCREEN: Dashboard (Main Hub)
+  // ==========================================
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <div className="max-w-4xl mx-auto">
@@ -155,8 +414,8 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
                     </div>
                   </div>
                   <div className="flex justify-center lg:justify-end">
-                    <Button 
-                      onClick={() => onStartPractice('practice')} 
+                    <Button
+                      onClick={handleStartPractice}
                       className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 text-lg px-8 py-6"
                       size="lg"
                     >
@@ -190,9 +449,9 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
                     </div>
                   </div>
                   <div className="flex justify-center lg:justify-end">
-                    <Button 
-                      onClick={onViewProgress} 
-                      variant="outline" 
+                    <Button
+                      onClick={() => setShowProgressModal(true)}
+                      variant="outline"
                       className="text-lg px-8 py-6 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
                       size="lg"
                     >
@@ -223,9 +482,9 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
                       Take a placement test to determine your starting level and create your personalized learning path. 
                       This helps us understand your current skills and provide you with the perfect challenges to help you grow!
                     </p>
-                    <Button 
-                      onClick={() => onStartPlacement('placement')} 
-                      className="w-full lg:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105" 
+                    <Button
+                      onClick={handleStartPlacement}
+                      className="w-full lg:w-auto bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
                       size="lg"
                     >
                       <Play className="h-5 w-5 mr-2" />
