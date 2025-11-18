@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
@@ -154,40 +153,12 @@ export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick 
     )
   }
 
-  if (!sessionStarted) {
-    return (
-      <div className="min-h-screen bg-background">
-        {onDashboardClick && (
-          <SessionNavigationHeader onExitSession={onDashboardClick} />
-        )}
-        <div className="flex items-center justify-center pt-20">\
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-center">Placement Test</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-medium">What to expect:</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  <li>You'll answer multiplication problems</li>
-                  <li>Problems will adapt to your skill level</li>
-                  <li>Take your time - accuracy matters most</li>
-                  <li>This helps us personalize your learning</li>
-                </ul>
-              </div>
-              <Button
-                onClick={() => setSessionStarted(true)}
-                className="w-full"
-                size="lg"
-              >
-                Start Placement Test
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
+  // Auto-start when component mounts (confirmation screen already shown in ReadyToPracticeScreen)
+  useEffect(() => {
+    if (!sessionStarted) {
+      setSessionStarted(true)
+    }
+  }, [])
 
   if (!currentProblem) {
     return (

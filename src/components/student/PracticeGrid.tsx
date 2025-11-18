@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { SessionTimer } from './SessionTimer'
 import { MasteryBadge } from './MasteryBadge'
@@ -163,37 +162,13 @@ export function PracticeGrid({ email, gradeLevel, onComplete, onDashboardClick }
     )
   }
 
-  if (!sessionStarted) {
-    return (
-      <div className="min-h-screen bg-background">
-        {onDashboardClick && (
-          <SessionNavigationHeader onExitSession={onDashboardClick} />
-        )}
-        <div className="flex items-center justify-center pt-20">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-center">Ready to Practice?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-center text-muted-foreground">
-                You'll practice multiplication problems to improve your skills.
-              </p>
-              <Button
-                onClick={() => {
-                  setSessionStarted(true)
-                  setStartTime(Date.now())
-                }}
-                className="w-full"
-                size="lg"
-              >
-                Start Practice
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
+  // Auto-start when component mounts (confirmation screen already shown in ReadyToPracticeScreen)
+  useEffect(() => {
+    if (!sessionStarted) {
+      setSessionStarted(true)
+      setStartTime(Date.now())
+    }
+  }, [])
 
   if (!currentProblem) {
     return (

@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { AppHeader } from '@/components/ui/AppHeader'
 import { Trophy, Target, CheckCircle2, Clock, Star, Sparkles } from 'lucide-react'
 import confetti from 'canvas-confetti'
 
@@ -18,15 +17,13 @@ interface ResultsScreenProps {
   }
   onBackToDashboard: () => void
   onPracticeMore: () => void
-  userName?: string
 }
 
 export function ResultsScreen({
   sessionType,
   results,
   onBackToDashboard,
-  onPracticeMore,
-  userName
+  onPracticeMore
 }: ResultsScreenProps) {
   const isPlacement = sessionType === 'placement'
   const { totalProblems, correctAnswers, accuracy, timeSpent, starsEarned, masteredFacts, guardrailsLevel } = results
@@ -78,10 +75,8 @@ export function ResultsScreen({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-      <div className="max-w-4xl mx-auto">
-        <AppHeader showLogout={false} userName={userName} />
-
-        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="max-w-4xl mx-auto pt-4">
+        <div className="flex items-center justify-center min-h-[calc(100vh-100px)]">
           <Card className="w-full max-w-2xl">
             <CardHeader className="text-center pb-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b">
               <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
