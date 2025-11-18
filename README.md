@@ -13,11 +13,12 @@ A comprehensive React-based educational application for learning multiplication 
 - **Real-time Feedback**: Immediate feedback on answers
 - **Mastery Tracking**: 3 consecutive correct answers required for mastery
 
-### Learning Coach Features
-- **Student Dashboard**: View all students and their progress
-- **Guardrail Settings**: Adjust difficulty levels (1-5, 1-9, 1-12)
-- **Progress Analytics**: Detailed statistics and insights
-- **Session History**: Track learning sessions and performance
+### Admin Features
+- **Cohort Metrics**: View aggregated student performance data
+- **Student Analytics**: Track individual student progress
+- **Time Bucket Configuration**: Adjust fast/medium/slow thresholds
+- **Difficulty Breakdown**: Analyze performance by difficulty level
+- **Progress Tracking**: Monitor session history and trends
 
 ## Technology Stack
 
@@ -64,23 +65,26 @@ A comprehensive React-based educational application for learning multiplication 
 
 ### Deployment
 
-For detailed deployment instructions to Vercel or other platforms, see [STANDALONE-DEPLOYMENT.md](./STANDALONE-DEPLOYMENT.md).
+For detailed deployment instructions to Vercel or other platforms, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Project Structure
 
 ```
-apps/math-app/
 ├── src/
 │   ├── components/
 │   │   ├── ui/              # shadcn/ui components
 │   │   ├── auth/            # Authentication components
 │   │   ├── student/         # Student-facing components
-│   │   └── coach/           # Learning coach components
+│   │   └── admin/           # Admin dashboard components
 │   ├── hooks/               # Custom React hooks
 │   ├── lib/                 # Utilities and configurations
 │   ├── pages/               # Main application pages
+│   ├── types/               # TypeScript type definitions
+│   ├── integrations/        # Third-party integrations (Supabase)
+│   ├── __tests__/           # Test files
 │   ├── App.tsx              # Main application component
 │   └── main.tsx             # Application entry point
+├── supabase/                # Supabase migrations and edge functions
 ├── package.json
 ├── tailwind.config.js
 ├── vite.config.ts
@@ -95,14 +99,17 @@ apps/math-app/
 - **MathProblem**: Individual problem display
 - **ProgressGrid**: Visual progress tracking
 
-### Coach Components
-- **StudentDashboard**: Student management interface
-- **GuardrailsSettings**: Difficulty level controls
+### Admin Components
+- **AdminDashboard**: Student analytics and cohort metrics
+- **KpiCard**: Key performance indicator displays
+- **TrendChart**: Visual trend analytics
+- **StudentsTable**: Student list with pagination
 
 ### Custom Hooks
-- **useAuth**: Authentication state management
 - **useMathSession**: Session and problem management
 - **useGridProgress**: Progress tracking and updates
+- **useSessionState**: Session state persistence
+- **useSessionProgress**: Track session analytics
 
 ## Learning Logic
 
