@@ -1,155 +1,88 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { LoginPage } from '@/pages/Login'
+import { StudentHome } from '@/pages/StudentHome'
+import { PracticePage } from '@/pages/Practice'
 import { AdminDashboard } from '@/pages/AdminDashboard'
-import { LoadingScreen } from '@/components/screens/LoadingScreen'
-import { DashboardScreen } from '@/components/screens/DashboardScreen'
-import { ReadyToPracticeScreen } from '@/components/screens/ReadyToPracticeScreen'
-import { ActiveSessionScreen } from '@/components/screens/ActiveSessionScreen'
-import { ResultsScreen } from '@/components/screens/ResultsScreen'
-import { useStudentJourney } from '@/hooks/useStudentJourney'
-import { capitalizeName } from '@/lib/utils'
+import { ProgressGrid } from '@/components/student/ProgressGrid'
+import { Loader2 } from 'lucide-react'
 
-type ScreenState = 'email' | 'loading' | 'dashboard' | 'ready-to-practice' | 'session' | 'results'
-type SessionType = 'placement' | 'practice' | null
+function StudentRoutes() {
+  const { identity, loading, clearIdentity } = useStudentIdentity()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [desiredMode, setDesiredMode] = useState<'practice' | 'placement' | undefined>(undefined)
 
-function StudentApp() {
-  const { identity, loading: identityLoading, clearIdentity } = useStudentIdentity()
-  const { loading: journeyLoading, shouldShowPlacement, canStartPractice, refreshJourneyState } = useStudentJourney()
-  const [screen, setScreen] = useState<ScreenState>('email')
-  const [sessionType, setSessionType] = useState<SessionType>(null)
-  const [sessionResults, setSessionResults] = useState<any>(null)
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading Multiplication Wizard...</p>
+        </div>
+      </div>
+    )
+  }
 
-  // Initialize screen based on identity
-  useEffect(() => {
-    if (identityLoading) return
-    
-    if (!identity) {
-      setScreen('email')
-    } else if (screen === 'email') {
-      // User just logged in, show loading
-      setScreen('loading')
-    }
-  }, [identity, identityLoading, screen])
-
-  // Transition from loading to dashboard
-  useEffect(() => {
-    if (screen === 'loading' && !journeyLoading) {
-      // Small delay for better UX
-      const timer = setTimeout(() => {
-        setScreen('dashboard')
-      }, 800)
-      return () => clearTimeout(timer)
-    }
-  }, [screen, journeyLoading])
+  if (!identity) {
+    return <LoginPage onLogin={() => navigate('/')} />
+  }
 
   const handleLogout = () => {
     clearIdentity()
-    setScreen('email')
-    setSessionType(null)
-    setSessionResults(null)
     window.location.reload()
   }
 
-  const handleStartSession = (type: 'placement' | 'practice') => {
-    setSessionType(type)
-    setScreen('ready-to-practice')
-  }
+  const currentPath = location.pathname
 
-  const handleSessionStart = () => {
-    setScreen('session')
-  }
-
-  const handleSessionComplete = (results: any) => {
-    setSessionResults(results)
-    setScreen('results')
-  }
-
-  const handleAbandonSession = async () => {
-    // Mark session as abandoned and return to dashboard
-    await refreshJourneyState()
-    setSessionType(null)
-    setScreen('dashboard')
-  }
-
-  const handleBackToDashboard = async () => {
-    setSessionType(null)
-    setSessionResults(null)
-    setScreen('dashboard')
-    await refreshJourneyState()
-  }
-
-  const handlePracticeMore = () => {
-    setSessionType('practice')
-    setSessionResults(null)
-    setScreen('ready-to-practice')
-  }
-
-  const rawDisplayName = identity?.metadata?.display_name || identity?.email || 'Student'
-  const displayName = capitalizeName(rawDisplayName)
-  const firstName = displayName.split(' ')[0]
-
-  // Screen Rendering
-  if (!identity || screen === 'email') {
-    return <LoginPage onLogin={() => setScreen('loading')} />
-  }
-
-  if (screen === 'loading') {
-    return <LoadingScreen />
-  }
-
-  if (screen === 'dashboard') {
+  if (currentPath === '/practice') {
     return (
-      <DashboardScreen
-        onStartSession={handleStartSession}
-        onLogout={handleLogout}
-        shouldShowPlacement={shouldShowPlacement}
-        canStartPractice={canStartPractice}
+      <PracticePage
+        onBack={() => {
+          setDesiredMode(undefined)
+          navigate('/')
+        }}
+        autoStart={true}
+        desiredMode={desiredMode}
+        key="practice-page"
       />
     )
   }
 
-  if (screen === 'ready-to-practice' && sessionType) {
+  if (currentPath === '/progress') {
     return (
-      <ReadyToPracticeScreen
-        sessionType={sessionType}
-        onStartSession={handleSessionStart}
-        userName={firstName}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-6">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 text-primary hover:underline"
+            >
+              ← Back to Home
+            </button>
+          </div>
+          <ProgressGrid
+            email={identity.email}
+            gradeLevel={identity.metadata?.grade_level || '3'}
+          />
+        </div>
+      </div>
     )
   }
 
-  if (screen === 'session' && sessionType && identity) {
-    return (
-      <ActiveSessionScreen
-        sessionType={sessionType}
-        email={identity.email}
-        gradeLevel={identity.metadata?.grade_level || '3'}
-        onComplete={handleSessionComplete}
-        onAbandon={handleAbandonSession}
-      />
-    )
-  }
-
-  if (screen === 'results' && sessionResults && sessionType) {
-    return (
-      <ResultsScreen
-        sessionType={sessionType}
-        results={sessionResults}
-        onBackToDashboard={handleBackToDashboard}
-        onPracticeMore={handlePracticeMore}
-      />
-    )
-  }
-
-  // Fallback to dashboard
   return (
-    <DashboardScreen
-      onStartSession={handleStartSession}
+    <StudentHome
+      onStartPlacement={(mode) => {
+        setDesiredMode(mode)
+        navigate('/practice')
+      }}
+      onStartPractice={(mode) => {
+        setDesiredMode(mode)
+        navigate('/practice')
+      }}
+      onViewProgress={() => navigate('/progress')}
       onLogout={handleLogout}
-      shouldShowPlacement={shouldShowPlacement}
-      canStartPractice={canStartPractice}
     />
   )
 }
@@ -162,11 +95,11 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Admin Route */}
+        {/* Public Admin Route - No Authentication Required */}
         <Route path="/admin" element={<AdminDashboard onLogout={handleAdminLogout} />} />
 
-        {/* Student Single-Page App - State-based navigation */}
-        <Route path="/*" element={<StudentApp />} />
+        {/* Student Routes - Require Email Login */}
+        <Route path="/*" element={<StudentRoutes />} />
       </Routes>
     </Router>
   )

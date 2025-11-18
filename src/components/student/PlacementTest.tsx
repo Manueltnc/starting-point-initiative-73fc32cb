@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { UnifiedMathQuestion } from './UnifiedMathQuestion'
+import { supabase } from '@/integrations/supabase/client'
+import { capitalizeName } from '@/lib/utils'
 import type { MathProblem } from '@/types'
 
 interface PlacementTestProps {
   email: string
   gradeLevel: string
   onComplete: (results: any) => void
-  onDashboardClick?: () => void
+  onJourneyStateChange?: () => void
 }
 
-export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick }: PlacementTestProps) {
+export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateChange }: PlacementTestProps) {
+  const navigate = useNavigate()
   const { playSuccess, playError } = useAudioFeedback()
   const mathSession = useMathSession()
   const { 
@@ -31,8 +36,18 @@ export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick 
   const [feedbackResult, setFeedbackResult] = useState<{ correct: boolean; correctAnswer: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
+  const displayName = capitalizeName(email.split('@')[0])
 
-  // Removed navigation logic - handled by parent ActiveSessionScreen
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
+
+  const handleExitSession = async () => {
+    // Don't mark as complete if test isn't finished
+    // Just navigate away - session will be marked as abandoned by background job
+    navigate('/')
+  }
 
   useEffect(() => {
     if (sessionStarted && !sessionState) {
@@ -56,11 +71,6 @@ export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick 
 
   const handleSessionComplete = async () => {
     try {
-      // Calculate results from sessionState before completing
-      const totalProblems = sessionState?.problemQueue.length || 0
-      const correctCount = sessionState?.gridUpdates.filter(u => u.lastAttemptCorrect).length || 0
-      const accuracy = totalProblems > 0 ? Math.round((correctCount / totalProblems) * 100) : 0
-
       await completeSession()
       
       // Analyze placement test results and set guardrails
@@ -73,13 +83,14 @@ export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick 
           console.error('Failed to analyze placement results:', error)
         }
       }
+      
+      if (onJourneyStateChange) {
+        onJourneyStateChange()
+      }
 
       const results = {
         sessionId: sessionState?.sessionId,
-        totalProblems,
-        correctAnswers: correctCount,
-        accuracy,
-        guardrailsLevel: '1-5', // Default, will be updated based on analysis
+        totalProblems: sessionState?.problemQueue.length || 0,
         timestamp: new Date().toISOString()
       }
 
@@ -153,12 +164,42 @@ export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick 
     )
   }
 
-  // Auto-start when component mounts (confirmation screen already shown in ReadyToPracticeScreen)
-  useEffect(() => {
-    if (!sessionStarted) {
-      setSessionStarted(true)
-    }
-  }, [])
+  if (!sessionStarted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SessionNavigationHeader
+          userName={displayName}
+          onLogout={handleLogout}
+          onExitSession={handleExitSession}
+        />
+        <div className="flex items-center justify-center pt-20">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-center">Placement Test</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="font-medium">What to expect:</h3>
+                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                  <li>You'll answer multiplication problems</li>
+                  <li>Problems will adapt to your skill level</li>
+                  <li>Take your time - accuracy matters most</li>
+                  <li>This helps us personalize your learning</li>
+                </ul>
+              </div>
+              <Button
+                onClick={() => setSessionStarted(true)}
+                className="w-full"
+                size="lg"
+              >
+                Start Placement Test
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   if (!currentProblem) {
     return (
@@ -174,9 +215,11 @@ export function PlacementTest({ email, gradeLevel, onComplete, onDashboardClick 
 
   return (
     <div className="min-h-screen bg-background pt-16">
-      {onDashboardClick && (
-        <SessionNavigationHeader onExitSession={onDashboardClick} />
-      )}
+      <SessionNavigationHeader
+        userName={displayName}
+        onLogout={handleLogout}
+        onExitSession={handleExitSession}
+      />
       
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <UnifiedMathQuestion

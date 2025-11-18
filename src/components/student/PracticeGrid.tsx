@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { SessionTimer } from './SessionTimer'
 import { MasteryBadge } from './MasteryBadge'
@@ -7,16 +9,18 @@ import { useMathSession } from '@/hooks/useMathSession'
 import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { UnifiedMathQuestion } from './UnifiedMathQuestion'
 import { PRACTICE_CONFIG } from '@/lib/config'
+import { supabase } from '@/integrations/supabase/client'
+import { capitalizeName } from '@/lib/utils'
 import type { MathProblem as MathProblemType } from '@/types'
 
 interface PracticeGridProps {
   email: string
   gradeLevel: string
-  onComplete: (results: any) => void
-  onDashboardClick?: () => void
+  onComplete: () => void
 }
 
-export function PracticeGrid({ email, gradeLevel, onComplete, onDashboardClick }: PracticeGridProps) {
+export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
+  const navigate = useNavigate()
   const { playSuccess, playError } = useAudioFeedback()
   const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading } = useMathSession()
   const [currentProblem, setCurrentProblem] = useState<MathProblemType | null>(null)
@@ -28,10 +32,19 @@ export function PracticeGrid({ email, gradeLevel, onComplete, onDashboardClick }
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
   const [showMasteryBadge, setShowMasteryBadge] = useState(false)
   const [masteredProblem, setMasteredProblem] = useState<{ multiplicand: number; multiplier: number } | null>(null)
+  const displayName = capitalizeName(email.split('@')[0])
 
   const SESSION_DURATION = PRACTICE_CONFIG.sessionDuration
 
-  // Removed navigation logic - handled by parent ActiveSessionScreen
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
+
+  const handleExitSession = async () => {
+    await completeSession()
+    navigate('/')
+  }
 
   useEffect(() => {
     if (sessionStarted && !sessionState) {
@@ -70,27 +83,7 @@ export function PracticeGrid({ email, gradeLevel, onComplete, onDashboardClick }
 
   const handleSessionComplete = async () => {
     await completeSession()
-    
-    // Calculate comprehensive results
-    const totalProblems = sessionState?.gridUpdates.length || 0
-    const correctAnswers = sessionState?.gridUpdates.filter(u => u.lastAttemptCorrect).length || 0
-    const accuracy = totalProblems > 0 ? Math.round((correctAnswers / totalProblems) * 100) : 0
-    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0
-    
-    // Count newly mastered facts (those with consecutiveCorrect >= 3)
-    const masteredFacts = sessionState?.gridUpdates.filter(u => u.consecutiveCorrect >= 3).length || 0
-    
-    const results = {
-      totalProblems,
-      correctAnswers,
-      accuracy,
-      timeSpent,
-      starsEarned: correctAnswers, // Simple: 1 star per correct answer
-      masteredFacts,
-      sessionId: sessionState?.sessionId
-    }
-    
-    onComplete(results)
+    onComplete()
   }
 
   const handleSubmitAnswer = async (answer: number, timeSpent: number) => {
@@ -162,13 +155,39 @@ export function PracticeGrid({ email, gradeLevel, onComplete, onDashboardClick }
     )
   }
 
-  // Auto-start when component mounts (confirmation screen already shown in ReadyToPracticeScreen)
-  useEffect(() => {
-    if (!sessionStarted) {
-      setSessionStarted(true)
-      setStartTime(Date.now())
-    }
-  }, [])
+  if (!sessionStarted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SessionNavigationHeader
+          userName={displayName}
+          onLogout={handleLogout}
+          onExitSession={handleExitSession}
+        />
+        <div className="flex items-center justify-center pt-20">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-center">Ready to Practice?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-center text-muted-foreground">
+                You'll practice multiplication problems to improve your skills.
+              </p>
+              <Button
+                onClick={() => {
+                  setSessionStarted(true)
+                  setStartTime(Date.now())
+                }}
+                className="w-full"
+                size="lg"
+              >
+                Start Practice
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   if (!currentProblem) {
     return (
@@ -184,9 +203,11 @@ export function PracticeGrid({ email, gradeLevel, onComplete, onDashboardClick }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
-      {onDashboardClick && (
-        <SessionNavigationHeader onExitSession={onDashboardClick} />
-      )}
+      <SessionNavigationHeader
+        userName={displayName}
+        onLogout={handleLogout}
+        onExitSession={handleExitSession}
+      />
       
       {/* Mastery Achievement Badge */}
       {masteredProblem && (
