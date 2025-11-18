@@ -16,6 +16,18 @@ export function calculateAccuracy(correct: number, total: number): number {
   return Math.round((correct / total) * 100)
 }
 
+export function capitalizeFirstLetter(str: string): string {
+  if (!str) return str
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+export function capitalizeName(name: string): string {
+  return name
+    .split(' ')
+    .map(word => capitalizeFirstLetter(word))
+    .join(' ')
+}
+
 export function generateMathProblems(
   multiplicandRange: [number, number],
   multiplierRange: [number, number],

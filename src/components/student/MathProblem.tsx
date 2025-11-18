@@ -4,6 +4,7 @@ import { EquationProblem } from '@/components/ui/EquationDisplay'
 import { MAX_TIME_PER_QUESTION_SECONDS } from '@/lib/config'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
+import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import type { MathProblem } from '@/types'
 
 interface MathProblemProps {
@@ -14,6 +15,7 @@ interface MathProblemProps {
 }
 
 export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = false }: MathProblemProps) {
+  const { playSuccess, playError } = useAudioFeedback()
   const [userAnswer, setUserAnswer] = useState('')
   const [timeSpent, setTimeSpent] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
@@ -65,6 +67,13 @@ export function MathProblem({ problem, onAnswer, onComplete, isLastProblem = fal
       const result = await onAnswer(answer, cappedTimeSpent)
 
       console.log('Answer submitted successfully (MathProblem):', result)
+
+      // Play audio feedback based on result
+      if (result.correct) {
+        await playSuccess()
+      } else {
+        playError()
+      }
 
       setLastResult({ correct: result.correct, answer: problem.answer })
       setShowResult(true)

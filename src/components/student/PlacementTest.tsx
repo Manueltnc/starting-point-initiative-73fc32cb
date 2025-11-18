@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { AppHeader } from '@/components/ui/AppHeader'
+import { SessionNavigationHeader } from './SessionNavigationHeader'
 import { useMathSession } from '@/hooks/useMathSession'
+import { useAudioFeedback } from '@/hooks/useAudioFeedback'
 import { supabase } from '@/integrations/supabase/client'
 import { MAX_TIME_PER_QUESTION_SECONDS } from '@/lib/config'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
+import { capitalizeName } from '@/lib/utils'
 import type { MathProblem } from '@/types'
 
 interface PlacementTestProps {
@@ -21,7 +24,19 @@ interface PlacementTestProps {
 type PlacementState = 'answering' | 'submitting' | 'showing_result' | 'advancing' | 'completing'
 
 export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateChange }: PlacementTestProps) {
-  const { startPlacementTest, submitAnswer, getNextProblem, advanceToNextProblem, getCurrentProblem, completeSession, sessionState, loading } = useMathSession()
+  const navigate = useNavigate()
+  const { playSuccess, playError } = useAudioFeedback()
+  const mathSession = useMathSession()
+  const { 
+    startPlacementTest, 
+    submitAnswer, 
+    getNextProblem, 
+    advanceToNextProblem, 
+    getCurrentProblem, 
+    completeSession, 
+    sessionState, 
+    loading 
+  } = mathSession
   const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(null)
   const [userAnswer, setUserAnswer] = useState('')
   const [timeSpent, setTimeSpent] = useState(0)
@@ -30,10 +45,17 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   const [lastResult, setLastResult] = useState<{ correct: boolean; answer: number; timeSpent: number } | null>(null)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
+  const displayName = capitalizeName(email.split('@')[0])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     window.location.href = '/'
+  }
+
+  const handleExitSession = async () => {
+    // Save progress and mark as abandoned
+    await completeSession()
+    navigate('/')
   }
 
   // Cleanup timeout on unmount
@@ -159,6 +181,13 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
 
       console.log('Answer submitted successfully:', result)
 
+      // Play audio feedback based on result
+      if (result.correct) {
+        await playSuccess()
+      } else {
+        playError()
+      }
+
       setLastResult({ correct: result.correct, answer: currentProblem.answer, timeSpent: currentTimeSpent })
       setTimeSpent(currentTimeSpent) // Preserve for display
       setPlacementState('showing_result')
@@ -208,7 +237,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
         <div className="max-w-4xl mx-auto">
-          <AppHeader onLogout={handleLogout} />
+          <SessionNavigationHeader onLogout={handleLogout} userName={displayName} />
           <div className="flex items-center justify-center">
             <Card className="w-full max-w-md bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30 hover:shadow-lg transition-all">
               <CardHeader className="text-center">
@@ -250,8 +279,12 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* App Header with Branding */}
-        <AppHeader onLogout={handleLogout} />
+        {/* Navigation Header */}
+        <SessionNavigationHeader 
+          onLogout={handleLogout} 
+          onExitSession={handleExitSession}
+          userName={displayName}
+        />
 
         {/* Progress Bar */}
         <div className="mb-8">

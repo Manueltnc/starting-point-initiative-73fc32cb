@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppHeader } from '@/components/ui/AppHeader'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useGridProgress } from '@/hooks/useGridProgress'
+import { capitalizeName } from '@/lib/utils'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
 import { Target, Trophy, BarChart3, Play, BookOpen, Star, Sparkles, Clock, Award } from 'lucide-react'
 import { ProgressGridModal } from '@/components/student/ProgressGridModal'
@@ -41,13 +42,15 @@ export function StudentHome({ onStartPlacement, onStartPractice, onViewProgress,
     )
   }
 
-  const displayName = identity?.metadata?.display_name || identity?.email || 'Student'
+  const rawDisplayName = identity?.metadata?.display_name || identity?.email || 'Student'
+  const displayName = capitalizeName(rawDisplayName)
+  const firstName = displayName.split(' ')[0]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-secondary/10 to-primary/20 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <AppHeader onLogout={onLogout} showLogout={true} userName={displayName} />
+        <AppHeader onLogout={onLogout} showLogout={true} userName={firstName} />
 
         {/* Concise Metrics Overview */}
         {progress && (

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { capitalizeName } from "@/lib/utils";
 
 interface AppHeaderProps {
   onLogout?: () => void;
@@ -8,6 +9,8 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ onLogout, showLogout = true, userName }: AppHeaderProps) {
+  const capitalizedUserName = userName ? capitalizeName(userName) : undefined
+  
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-3">
@@ -19,7 +22,7 @@ export function AppHeader({ onLogout, showLogout = true, userName }: AppHeaderPr
         <div>
           <h1 className="text-2xl font-bold text-primary">Multiplication Wizard</h1>
           <p className="text-muted-foreground italic">A Learning Boltz Experience</p>
-          {userName && <p className="text-sm text-muted-foreground">Welcome back, {userName}!</p>}
+          {capitalizedUserName && <p className="text-sm text-muted-foreground">Welcome back, {capitalizedUserName}!</p>}
         </div>
       </div>
       {showLogout && onLogout && (
