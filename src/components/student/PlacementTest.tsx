@@ -72,7 +72,7 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   const handleSessionComplete = async () => {
     try {
       await completeSession()
-      
+
       // Analyze placement test results and set guardrails
       if (sessionState?.sessionId) {
         try {
@@ -83,14 +83,24 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
           console.error('Failed to analyze placement results:', error)
         }
       }
-      
+
       if (onJourneyStateChange) {
         onJourneyStateChange()
+      }
+
+      // Calculate session metrics for results display
+      const { calculateSessionMetrics } = await import('@/lib/session-analytics')
+      const metrics = sessionState ? calculateSessionMetrics(sessionState) : {
+        itemsAttempted: 0,
+        itemsCorrect: 0,
+        accuracy: 0
       }
 
       const results = {
         sessionId: sessionState?.sessionId,
         totalProblems: sessionState?.problemQueue.length || 0,
+        correctAnswers: metrics.itemsCorrect,
+        accuracy: metrics.accuracy,
         timestamp: new Date().toISOString()
       }
 
