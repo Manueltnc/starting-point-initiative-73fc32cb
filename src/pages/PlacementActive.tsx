@@ -5,11 +5,7 @@ import { useStudentJourney } from '@/hooks/useStudentJourney'
 import { PlacementTest } from '@/components/student/PlacementTest'
 import { buildRoute } from '@/lib/routes'
 
-interface PlacementActiveProps {
-  onLogout: () => void
-}
-
-export function PlacementActive({ onLogout }: PlacementActiveProps) {
+export function PlacementActive() {
   const navigate = useNavigate()
   const { sessionId } = useParams<{ sessionId: string }>()
   const { identity } = useStudentIdentity()
