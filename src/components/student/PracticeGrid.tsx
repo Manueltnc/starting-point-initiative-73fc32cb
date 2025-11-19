@@ -46,6 +46,15 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     navigate('/')
   }
 
+  // Auto-start practice session when component mounts
+  useEffect(() => {
+    if (!sessionStarted && !sessionState && !loading) {
+      setSessionStarted(true)
+      setStartTime(Date.now())
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Empty deps intentional - only start once on mount
+
   useEffect(() => {
     if (sessionStarted && !sessionState) {
       startPracticeSession(email, gradeLevel)
