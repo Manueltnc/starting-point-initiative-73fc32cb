@@ -16,9 +16,16 @@ interface PlacementTestProps {
   gradeLevel: string
   onComplete: (results: any) => void
   onJourneyStateChange?: () => void
+  onSessionStart?: () => void
 }
 
-export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateChange }: PlacementTestProps) {
+export function PlacementTest({
+  email,
+  gradeLevel,
+  onComplete,
+  onJourneyStateChange,
+  onSessionStart,
+}: PlacementTestProps) {
   const navigate = useNavigate()
   const { playSuccess, playError } = useAudioFeedback()
   const mathSession = useMathSession()
@@ -66,7 +73,11 @@ export function PlacementTest({ email, gradeLevel, onComplete, onJourneyStateCha
   // Auto-start placement test when component mounts
   useEffect(() => {
     if (!sessionState && !loading) {
-      startPlacementTest(email, gradeLevel)
+      startPlacementTest(email, gradeLevel).then(() => {
+        if (onSessionStart) {
+          onSessionStart()
+        }
+      })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // Empty deps intentional - only start once on mount

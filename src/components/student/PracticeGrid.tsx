@@ -17,9 +17,10 @@ interface PracticeGridProps {
   email: string
   gradeLevel: string
   onComplete: (results?: any) => void
+  onSessionStart?: () => void
 }
 
-export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProps) {
+export function PracticeGrid({ email, gradeLevel, onComplete, onSessionStart }: PracticeGridProps) {
   const navigate = useNavigate()
   const { playSuccess, playError } = useAudioFeedback()
   const { startPracticeSession, submitAnswer, getNextProblem, advanceToNextProblem, completeSession, sessionState, loading } = useMathSession()
@@ -51,6 +52,9 @@ export function PracticeGrid({ email, gradeLevel, onComplete }: PracticeGridProp
     if (!sessionStarted && !sessionState && !loading) {
       setSessionStarted(true)
       setStartTime(Date.now())
+      if (onSessionStart) {
+        onSessionStart()
+      }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // Empty deps intentional - only start once on mount

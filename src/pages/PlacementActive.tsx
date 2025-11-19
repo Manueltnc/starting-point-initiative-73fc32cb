@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStudentIdentity } from '@/hooks/useStudentIdentity'
 import { useStudentJourney } from '@/hooks/useStudentJourney'
@@ -10,13 +10,14 @@ export function PlacementActive() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const { identity } = useStudentIdentity()
   const { refreshJourneyState } = useStudentJourney()
+  const [sessionStarted, setSessionStarted] = useState(false)
 
-  // Redirect if no identity
+  // Redirect if no identity (but not if session already started)
   useEffect(() => {
-    if (!identity?.email) {
+    if (!identity?.email && !sessionStarted) {
       navigate(buildRoute.home())
     }
-  }, [identity, navigate])
+  }, [identity?.email, navigate, sessionStarted])
 
   const handleSessionComplete = async (_results: any) => {
     // Navigate to results page with session info
@@ -41,6 +42,7 @@ export function PlacementActive() {
       gradeLevel={identity.metadata?.grade_level || '3'}
       onComplete={handleSessionComplete}
       onJourneyStateChange={refreshJourneyState}
+      onSessionStart={() => setSessionStarted(true)}
     />
   )
 }
