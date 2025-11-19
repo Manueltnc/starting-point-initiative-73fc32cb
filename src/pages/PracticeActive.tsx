@@ -16,7 +16,7 @@ export function PracticeActive() {
     }
   }, [identity, navigate])
 
-  const handleSessionComplete = async (results: any) => {
+  const handleSessionComplete = async (_results: any) => {
     // Navigate to results page with session info
     if (sessionId && sessionId !== 'new') {
       navigate(buildRoute.practiceResults(sessionId))

@@ -171,6 +171,10 @@ export function useSessionState({ apiClient, identity }: UseSessionStateOptions)
       // Final shuffle to mix difficulty levels during practice
       const finalProblemQueue = shuffleArray(uniqueProblems)
 
+      if (finalProblemQueue.length === 0) {
+        throw new Error('No problems available for practice. Please complete the placement test first.')
+      }
+
       const { sessionId } = await apiClient.createSession(
         'math',
         email,
